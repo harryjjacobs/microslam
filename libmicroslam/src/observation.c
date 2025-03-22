@@ -10,7 +10,7 @@ void observations_add(observations_t *observations, observation_t observation) {
       realloc(observations->observations,
               sizeof(observation_t) * (observations->size + 1));
   if (observations->observations == NULL) {
-    fprintf(stderr, "failed to reallod\n");
+    fprintf(stderr, "failed to realloc\n");
     exit(EXIT_FAILURE);
   }
   observations->observations[observations->size] = observation;
