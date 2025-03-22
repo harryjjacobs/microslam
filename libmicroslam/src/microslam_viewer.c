@@ -61,6 +61,20 @@ void draw_particles(particle_t *particles, size_t num_particles) {
   }
 }
 
+void draw_state(state_t *state) {
+  static double size = 0.2;
+  glPushMatrix();
+  glTranslatef(state->pose.x, state->pose.y, 0);
+  glRotatef(state->pose.r * 180 / PI, 0, 0, 1);
+  glBegin(GL_TRIANGLES);
+  glColor3f(1, 0, 1);
+  glVertex2f(0, size);
+  glVertex2f(size, -size);
+  glVertex2f(-size, -size);
+  glEnd();
+  glPopMatrix();
+}
+
 void draw_map(map_t *map) {
   for (size_t x = 0; x < MAP_WIDTH; x++) {
     for (size_t y = 0; y < MAP_HEIGHT; y++) {
@@ -123,6 +137,7 @@ void viewer_draw(microslam_viewer_t *viewer, particle_filter_t *particle_filter,
   draw_observations(&robot->state.pose, observations);
   draw_particles(particle_filter->particles,
                  particle_filter->params.num_particles);
+  draw_state(&particle_filter->state);
   glfwSwapBuffers(viewer->window);
   glfwPollEvents();
 }
