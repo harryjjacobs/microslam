@@ -119,6 +119,29 @@ void particle_filter_init(particle_filter_t *particle_filter,
 void particle_filter_step(particle_filter_t *particle_filter, map_t *map,
                           motion_t *control, observations_t *observations) {
   time_t start = time(NULL);
+
+  // As mentioned in  the paper:
+  // "In practice, we have found it useful to add a small number of uniformly
+  // distributed, random samples after each estimation step."
+  // "The added samples are essential for relocalization in the rare event
+  // that the robot loses track of its position. Since MCL uses finite sample
+  // sets, it may happen that no sample is generated close to the correct
+  // robot position. In such cases, MCL would be unable to re-localize the
+  // robot. By adding a small number of random samples, however, MCL can
+  // effectively re-localize the robot, as documented in the experimental
+  // results section of this paper."
+
+  // add a small number of random particles
+  size_t num_random_particles = particle_filter->params.num_particles / 100;
+  for (size_t m = 0; m < num_random_particles; m++) {
+    particle_t particle;
+    particle.weight = 1.0 / particle_filter->params.num_particles;
+    particle.state.pose.x = random_range_uniformf(0.0, (double)MAP_WIDTH);
+    particle.state.pose.y = random_range_uniformf(0.0, (double)MAP_HEIGHT);
+    particle.state.pose.r = random_range_uniformf(0.0, 2 * PI);
+    particle_filter->particles[m] = particle;
+  }
+
   double weights_sum = 0.0;
   for (size_t m = 0; m < particle_filter->params.num_particles; m++) {
     // update with motion model
