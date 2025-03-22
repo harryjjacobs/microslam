@@ -1,10 +1,11 @@
+#include <log/log.h>
 #include <math.h>
 #include <microslam/map.h>
 #include <microslam/microslam_viewer.h>
 #include <microslam/observation.h>
 #include <microslam/particle_filter.h>
 
-#define PARTICLE_COUNT 10000
+#define PARTICLE_COUNT 5000
 
 void get_observations(map_t *map, robot_t *robot,
                       observations_t *observations) {
@@ -17,12 +18,12 @@ void get_observations(map_t *map, robot_t *robot,
     double range = pose_distance(&map->landmarks.poses[i], &robot->state.pose);
     if (bearing > min_bearing && bearing < max_bearing &&
         range < robot->sensor.range) {
-      printf("robot->state.pose.r %f\n", robot->state.pose.r);
-      printf("min_bearing: %f\n", min_bearing);
-      printf("max_bearing: %f\n", max_bearing);
-      printf("bearing: %f\n", bearing);
-      printf("range: %f\n", range);
-      printf("observed\n");
+      log_debug("robot->state.pose.r %f\n", robot->state.pose.r);
+      log_debug("min_bearing: %f\n", min_bearing);
+      log_debug("max_bearing: %f\n", max_bearing);
+      log_debug("bearing: %f\n", bearing);
+      log_debug("range: %f\n", range);
+      log_debug("observed\n");
       observation_t observation;
       observation.bearing = bearing;
       observation.bearing_error = robot->sensor.bearing_error;
@@ -41,6 +42,8 @@ void move_robot(robot_t *robot, motion_t *motion) {
 }
 
 int main() {
+  log_set_level(LOG_DEBUG);
+
   microslam_viewer_t viewer;
   viewer_init(&viewer);
 

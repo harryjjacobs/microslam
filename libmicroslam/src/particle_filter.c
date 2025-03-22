@@ -1,3 +1,4 @@
+#include <log/log.h>
 #include <math.h>
 #include <microslam/particle_filter.h>
 #include <stdio.h>
@@ -152,6 +153,7 @@ void particle_filter_step(particle_filter_t *particle_filter, map_t *map,
     weights_sum += particle_filter->particles[m].weight;
   }
   double weights_mean = weights_sum / particle_filter->params.num_particles;
+
   // normalise the weights and calculate the variance of the weights
   double weights_sum_sq = 0.0;  // sum of the squares of the weights
   for (size_t m = 0; m < particle_filter->params.num_particles; m++) {
@@ -163,6 +165,9 @@ void particle_filter_step(particle_filter_t *particle_filter, map_t *map,
   }
   double weights_variance =
       weights_sum_sq / (particle_filter->params.num_particles - 1);
+
+  log_debug("weights_variance: %f\n", weights_variance);
+
   // use the variance of the importance weights to determine whether
   // or not to perform the resampling. i.e. if all the weights are identical
   // there is no point in resampling, however if they are concentrated on a
@@ -171,7 +176,7 @@ void particle_filter_step(particle_filter_t *particle_filter, map_t *map,
   double variance_threshold = 0.0001 / particle_filter->params.num_particles;
   if (weights_variance > variance_threshold) {
     // resampling step
-    printf("resampling\n\n");
+    log_debug("resampling\n\n");
     particle_filter_low_variance_resampling(particle_filter);
   }
 
@@ -200,11 +205,11 @@ void particle_filter_step(particle_filter_t *particle_filter, map_t *map,
                       (double)particle_filter->params.num_particles);
   time_t end = time(NULL);
   double elapsed = difftime(end, start);
-  printf("particle_filter_step took %f seconds\n", elapsed);
-  printf("state: \nx: %f\ny: %f\nr: %f\n", particle_filter->state.pose.x,
-         particle_filter->state.pose.y, particle_filter->state.pose.r);
-  printf("variance: \nx: %f\ny: %f\nr: %f\n", particle_filter->state.error.x,
-         particle_filter->state.error.y, particle_filter->state.error.r);
+  log_debug("particle_filter_step took %f seconds\n", elapsed);
+  log_debug("state: \nx: %f\ny: %f\nr: %f\n", particle_filter->state.pose.x,
+            particle_filter->state.pose.y, particle_filter->state.pose.r);
+  log_debug("variance: \nx: %f\ny: %f\nr: %f\n", particle_filter->state.error.x,
+            particle_filter->state.error.y, particle_filter->state.error.r);
 }
 
 void particle_filter_destroy(particle_filter_t *particle_filter) {

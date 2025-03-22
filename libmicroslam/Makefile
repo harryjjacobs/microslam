@@ -45,8 +45,15 @@ TEST = $(BUILD_DIR)/test
 # default target
 all: $(APP)
 
+# log library
+LOG = thirdparty/log/log.c
+
+$(BUILD_DIR)/log.o: $(LOG)
+	@mkdir -p $(@D)
+	$(CC) $(CFLAGS) -c -o $@ $<
+
 # build the microslam library
-$(LIB): $(OBJ)
+$(LIB): $(OBJ) $(BUILD_DIR)/log.o
 	@mkdir -p $(@D)
 	$(AR) rcs $@ $^
 
@@ -54,7 +61,7 @@ $(LIB): $(OBJ)
 $(APP): $(LIB) $(BUILD_DIR)/main.o
 	$(CC) $(CFLAGS) -o $@ $^ $(LIB) $(LD_FLAGS)
 
-# unity library
+# unity (unit testing) library
 UNITY = thirdparty/unity/unity.c
 
 $(BUILD_DIR)/unity.o: $(UNITY)
@@ -68,12 +75,12 @@ $(TEST): $(LIB) $(TEST_OBJ) $(BUILD_DIR)/unity.o
 # build object files
 $(BUILD_DIR)/%.o: src/%.c
 	@mkdir -p $(@D)
-	$(CC) $(CFLAGS) -c -o $@ $<
+	$(CC) $(CFLAGS) -c -o $@ $< -Ithirdparty
 
 # build test object files
 $(BUILD_DIR)/%.o: test/%.c
 	@mkdir -p $(@D)
-	$(CC) $(CFLAGS) -c -o $@ $< -Ithirdparty/unity
+	$(CC) $(CFLAGS) -c -o $@ $< -Ithirdparty
 
 # clean build artifacts
 clean:

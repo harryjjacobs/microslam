@@ -1,8 +1,7 @@
 #include <microslam/microslam.h>
 #include <microslam/particle_filter.h>
 #include <microslam/utils.h>
-
-#include "unity.h"
+#include <unity/unity.h>
 
 #define DOUBLE_EPSILON 1e-8
 
