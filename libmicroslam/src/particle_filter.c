@@ -71,56 +71,18 @@ void particle_filter_sensor_update(particle_t *particle, landmarks_t *landmarks,
   // what is the likelihood that we are seeing this observation based on this
   // particle location
 
-  // calculate the predicted measurements - i.e. if we're at this particle, what
-  // would the measurement to each of the landmarks be
-
-  // pose_t obs_origin = {0, 0, 0};
-  // double observed_range_measurement =
-  //     pose_distance(&obs_origin, &observation->delta_pose);
-  // // i.e. what would the relative bearing be given we can see the landmark
-  // // at this point
-  // double observed_bearing_measurement =
-  //     calc_bearing_to_point(&obs_origin, &observation->delta_pose);
-  // printf("observed_bearing_measurement: %f\n", observed_bearing_measurement);
-
+  // calculate the predicted measurements - i.e. if we're at this particle,
+  // what would the measurement to each of the landmarks be
   double likelihood = 1.0;
   for (size_t i = 0; i < observations->size; i++) {
     pose_t *landmark_pose =
         &landmarks->poses[observations->observations[i].landmark_index];
-    // predicted measurement = the euclidean distance between particle and
-    // landmark
-    // double predicted_range_measurement =
-    //     pose_distance(&particle->state.pose, &landmarks->poses[l]);
-    // i.e. what would the relative bearing be given we can see the landmark
-    // at this point
-    // double predicted_bearing_measurement = particle->state.pose.r;
-    // printf("predicted_range_measurement: %f\n", predicted_range_measurement);
-    // printf("predicted_bearing_measurement: %f\n",
-    //        predicted_bearing_measurement);
     // We use the gaussian probability function to calculate the likelihood of
     // getting the given sensor observation, given the predicted measurement.
-    // Here we evaluate the sensor measurement using a normal PDF with a mean of
-    // predicted measurement and stddev of the sensor. e.g. if the sensor
+    // Here we evaluate the sensor measurement using a normal PDF with a mean
+    // of predicted measurement and stddev of the sensor. e.g. if the sensor
     // measurement is identical to the expected measurement for this particle
     // and landmark the likelihood will be at maximum
-    // double distance_likelihood =
-    //     normal_pdf(observed_range_measurement, predicted_range_measurement,
-    //                observation->error.x * observation->error.y);
-    // double bearing_likelihood =
-    //     normal_pdf(observed_bearing_measurement,
-    //     predicted_bearing_measurement,
-    //                observation->error.r);
-
-    // printf("observed_range_measurement: %f\n", observed_range_measurement);
-    // printf("observed_bearing_measurement: %f\n",
-    // observed_bearing_measurement);
-    // printf("predicted_range_measurement:
-    // %f\n", predicted_range_measurement);
-    // printf("predicted_bearing_measurement: %f\n",
-    //        predicted_bearing_measurement);
-    // printf("distance_likelihood: %f\n", distance_likelihood);
-    // printf("bearing_likelihood: %f\n", bearing_likelihood);
-
     observation_t predicted_observation;
     predicted_observation.range =
         pose_distance(landmark_pose, &particle->state.pose);
