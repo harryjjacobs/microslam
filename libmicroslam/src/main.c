@@ -56,12 +56,10 @@ int main() {
   // map_add_landmark(&map, (pose_t){10, 10, 0});
   map_add_landmark(&map, (pose_t){MAP_WIDTH / 2 + 1, MAP_HEIGHT / 2 + 1, 0}, 0);
   map_add_landmark(&map, (pose_t){MAP_WIDTH / 2 + 5, MAP_HEIGHT / 2, 0}, 1);
-  map_add_landmark(&map, (pose_t){MAP_WIDTH / 2 + 1.1, MAP_HEIGHT / 2 + 1.1, 0},
+  map_add_landmark(&map, (pose_t){MAP_WIDTH / 2 + 2, MAP_HEIGHT / 2 + 1.1, 0},
                    1);
-  // map_add_landmark(&map, (pose_t){5, 30, 0});
-
-  // observation_t observation;
-  // observation_init(&observation);
+  map_add_landmark(&map, (pose_t){MAP_WIDTH / 2 + 0.2, MAP_HEIGHT / 2 + 1, 0},
+                   1);
 
   robot_t robot;
   robot.state.pose.x = MAP_WIDTH / 2;
@@ -70,8 +68,8 @@ int main() {
 
   robot.sensor.range = 2;
   robot.sensor.fov = PI / 6;
-  robot.sensor.range_error = 0.01;
-  robot.sensor.bearing_error = 0.01;
+  robot.sensor.range_error = 0.1;
+  robot.sensor.bearing_error = 0.1;
 
   {
     // motion_t motion;
@@ -118,11 +116,11 @@ int main() {
       motion.dx = 0;
       motion.dy = 0;
       motion.dr = 0;
-      motion.error.x = 0.005;
-      motion.error.y = 0.005;
-      motion.error.r = 0.01;
-      double linear_speed = 0.005;
-      double angular_speed = 0.01;
+      motion.error.x = 0.002;
+      motion.error.y = 0.002;
+      motion.error.r = 0.002;
+      double linear_speed = 0.01;
+      double angular_speed = 0.02;
       microslam_viewer_key key = viewer_getkey(&viewer);
       switch (key) {
         case microslam_viewer_key_up:
