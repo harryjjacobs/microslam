@@ -168,9 +168,7 @@ void particle_filter_step(particle_filter_t *particle_filter, map_t *map,
   // there is no point in resampling, however if they are concentrated on a
   // small set of particles then we should resample - in order to achieve
   // the target probability distribution.
-  double variance_threshold =
-      (1.0 / particle_filter->params.num_particles) * 0.001;
-  // printf("variance_threshold: %f\n", variance_threshold);
+  double variance_threshold = 0.0001 / particle_filter->params.num_particles;
   if (weights_variance > variance_threshold) {
     // resampling step
     printf("resampling\n\n");
