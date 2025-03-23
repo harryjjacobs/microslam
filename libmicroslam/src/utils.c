@@ -3,7 +3,7 @@
 #include <microslam/utils.h>
 #include <stdio.h>
 
-double shortest_rotation(double value) {
+float shortest_rotation(float value) {
   if (value < -PI) {
     value += 2 * PI;
   } else if (value > PI) {
@@ -17,14 +17,14 @@ double shortest_rotation(double value) {
  *
  * @param value
  * @param rotation
- * @return double
+ * @return float
  */
-double rotate(double value, double rotation) {
+float rotate(float value, float rotation) {
   value += rotation;
   return shortest_rotation(value);
 }
 
-double random_uniform() { return (double)rand() / RAND_MAX; }
+float random_uniform() { return (float)rand() / RAND_MAX; }
 
 int random_range_uniform(int min, int max) {
   assert(max >= min);
@@ -32,9 +32,9 @@ int random_range_uniform(int min, int max) {
   return min + (rand() % range);
 }
 
-double random_range_uniformf(double min, double max) {
+float random_range_uniformf(float min, float max) {
   assert(max >= min);
-  double range = max - min;
+  float range = max - min;
   return min + random_uniform() * range;
 }
 
@@ -47,21 +47,21 @@ double random_range_uniformf(double min, double max) {
  *
  * @param mean
  * @param stdev
- * @return double
+ * @return float
  */
-double random_normal(double mean, double stddev) {
+float random_normal(float mean, float stddev) {
   // Box-Mueller results in two normally distributed random numbers.
   // We can return the second one on the next function call.
-  static double next = INFINITY;  // infinity == empty
+  static float next = INFINITY;  // infinity == empty
   if (next != INFINITY) {
-    double ret = next;
+    float ret = next;
     next = INFINITY;
     return ret;
   }
-  double u1 = random_uniform();
-  double u2 = random_uniform();
-  double r = sqrt(-2 * log(u1)) * stddev;
-  double theta = 2 * PI * u2;
+  float u1 = random_uniform();
+  float u2 = random_uniform();
+  float r = sqrt(-2 * log(u1)) * stddev;
+  float theta = 2 * PI * u2;
   next = r * sin(theta) + mean;
   return r * cos(theta) + mean;
 }
@@ -93,7 +93,7 @@ float random_range_normalf(float min, float max) {
     sum += rand();
   }
   float range = max - min;
-  return min + ((double)sum / N) / RAND_MAX * range;
+  return min + ((float)sum / N) / RAND_MAX * range;
 }
 
 /**
@@ -103,11 +103,11 @@ float random_range_normalf(float min, float max) {
  * @param x
  * @param mean
  * @param stddev
- * @return double
+ * @return float
  */
-double normal_pdf(double x, double mean, double stddev) {
-  static const double inv_sqrt_2pi = 0.3989422804014327;
-  double a = (x - mean) / stddev;
+float normal_pdf(float x, float mean, float stddev) {
+  static const float inv_sqrt_2pi = 0.3989422804014327;
+  float a = (x - mean) / stddev;
   return inv_sqrt_2pi / stddev * exp(-0.5 * a * a);
 }
 
@@ -118,9 +118,9 @@ double normal_pdf(double x, double mean, double stddev) {
  * @param pose
  * @param x
  * @param y
- * @return double
+ * @return float
  */
-double calc_bearing_to_point(pose_t *a, pose_t *b) {
+float calc_bearing_to_point(pose_t *a, pose_t *b) {
   return rotate((atan2(b->y - a->y, b->x - a->x) - PI / 2), -a->r);
 }
 
@@ -130,7 +130,7 @@ void pose_init(pose_t *pose) {
   pose->r = 0;
 }
 
-double pose_distance(pose_t *a, pose_t *b) {
+float pose_distance(pose_t *a, pose_t *b) {
   return sqrt((a->x - b->x) * (a->x - b->x) + (a->y - b->y) * (a->y - b->y));
 }
 
@@ -160,7 +160,7 @@ void pose_multiply_inplace_unclamped_rot(pose_t *a, pose_t *b) {
   a->r *= b->r;
 }
 
-void pose_divide_inplace(pose_t *pose, double divisor) {
+void pose_divide_inplace(pose_t *pose, float divisor) {
   pose->x /= divisor;
   pose->y /= divisor;
   pose->r /= divisor;

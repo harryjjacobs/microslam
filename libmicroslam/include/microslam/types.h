@@ -14,9 +14,9 @@
 #define MAP_HEIGHT 10
 
 typedef struct pose_t {
-  double x;
-  double y;
-  double r;
+  float x;
+  float y;
+  float r;
 } pose_t;
 
 typedef struct landmarks_t {
@@ -31,20 +31,17 @@ typedef struct state_t {
 } state_t;
 
 typedef struct sensor_t {
-  double range;
-  double range_error;
-  double fov;
-  double bearing_error;
+  float range;
+  float range_error;
+  float fov;
+  float bearing_error;
 } sensor_t;
 
 typedef struct observation_t {
-  double range;
-  double range_error;
-  double bearing;
-  double bearing_error;
-  size_t landmark_index;
-  int signature;
-  double signature_error;
+  float range;
+  float range_error;
+  float bearing;
+  float bearing_error;
 } observation_t;
 
 typedef struct observations_t {
@@ -58,9 +55,9 @@ typedef struct robot_t {
 } robot_t;
 
 typedef struct motion_t {
-  double dx;
-  double dy;
-  double dr;
+  float dx;
+  float dy;
+  float dr;
   pose_t error;
 } motion_t;
 
@@ -71,7 +68,7 @@ typedef struct map_t {
 
 typedef struct particle_t {
   state_t state;
-  double weight;
+  float weight;
 } particle_t;
 
 typedef struct particle_filter_params_t {

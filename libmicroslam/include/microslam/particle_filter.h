@@ -14,7 +14,7 @@
 void particle_filter_low_variance_resampling(
     particle_filter_t *particle_filter);
 
-double particle_filter_observation_likelihood(
+float particle_filter_observation_likelihood(
     observations_t *observation, observations_t *predicted_observation);
 
 void particle_filter_motion_update(particle_t *particle, motion_t *control);

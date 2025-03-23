@@ -11,11 +11,11 @@ void get_observations(map_t *map, robot_t *robot,
                       observations_t *observations) {
   for (size_t i = 0; i < map->landmarks.size; i++) {
     // check if the landmark is in the robot's FOV
-    double min_bearing = -robot->sensor.fov / 2;
-    double max_bearing = robot->sensor.fov / 2;
-    double bearing =
+    float min_bearing = -robot->sensor.fov / 2;
+    float max_bearing = robot->sensor.fov / 2;
+    float bearing =
         calc_bearing_to_point(&robot->state.pose, &map->landmarks.poses[i]);
-    double range = pose_distance(&map->landmarks.poses[i], &robot->state.pose);
+    float range = pose_distance(&map->landmarks.poses[i], &robot->state.pose);
     if (bearing > min_bearing && bearing < max_bearing &&
         range < robot->sensor.range) {
       log_debug("robot->state.pose.r %f\n", robot->state.pose.r);
@@ -122,8 +122,8 @@ int main() {
       motion.error.x = 0.002;
       motion.error.y = 0.002;
       motion.error.r = 0.002;
-      double linear_speed = 0.01;
-      double angular_speed = 0.02;
+      float linear_speed = 0.01;
+      float angular_speed = 0.02;
       microslam_viewer_key key = viewer_getkey(&viewer);
       switch (key) {
         case microslam_viewer_key_up:

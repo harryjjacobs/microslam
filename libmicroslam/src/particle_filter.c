@@ -13,15 +13,15 @@ void particle_filter_low_variance_resampling(
   // - no samples lost if there was no observation update/weight change
   // - fast
 
-  particle_t *particles =
-      malloc(sizeof(particle_t) * particle_filter->params.num_particles);
+  particle_t *particles = (particle_t *)malloc(
+      sizeof(particle_t) * particle_filter->params.num_particles);
   // start from a random point and then jump
-  double r = random_uniform();
-  double step = 1.0 / particle_filter->params.num_particles;
-  double cum_weight = 0.0;
+  float r = random_uniform();
+  float step = 1.0 / particle_filter->params.num_particles;
+  float cum_weight = 0.0;  //
   size_t i = 0;
   for (size_t p = 0; p < particle_filter->params.num_particles; p++) {
-    double u = r + p * step;
+    float u = r + p * step;
     while (u > cum_weight) {
       i = (i + 1) % particle_filter->params.num_particles;
       cum_weight += particle_filter->particles[i].weight;
@@ -34,12 +34,12 @@ void particle_filter_low_variance_resampling(
   particle_filter->particles = particles;
 }
 
-double observation_likelihood(observation_t *observation,
-                              observation_t *predicted_observation) {
-  double likelihood_bearing =
+float observation_likelihood(observation_t *observation,
+                             observation_t *predicted_observation) {
+  float likelihood_bearing =
       normal_pdf(observation->bearing, predicted_observation->bearing,
                  observation->bearing_error);
-  double likelihood_range =
+  float likelihood_range =
       normal_pdf(observation->range, predicted_observation->range,
                  observation->range_error);
   return likelihood_bearing * likelihood_range;
@@ -74,7 +74,7 @@ void particle_filter_sensor_update(particle_t *particle, landmarks_t *landmarks,
 
   // calculate the predicted measurements - i.e. if we're at this particle,
   // what would the measurement to each of the landmarks be
-  double likelihood = 1.0;
+  float likelihood = 1.0;
   for (size_t i = 0; i < observations->size; i++) {
     pose_t *landmark_pose =
         &landmarks->poses[observations->observations[i].landmark_index];
@@ -104,14 +104,14 @@ void particle_filter_init(particle_filter_t *particle_filter,
                           particle_filter_params_t params) {
   // initialise the particles
   particle_filter->particles =
-      malloc(sizeof(particle_t) * params.num_particles);
+      (particle_t *)malloc(sizeof(particle_t) * params.num_particles);
   particle_filter->params = params;
   for (size_t m = 0; m < particle_filter->params.num_particles; m++) {
     particle_filter->particles[m].weight = 1.0 / params.num_particles;
     particle_filter->particles[m].state.pose.x =
-        random_range_uniformf(0.0, (double)MAP_WIDTH);
+        random_range_uniformf(0.0, (float)MAP_WIDTH);
     particle_filter->particles[m].state.pose.y =
-        random_range_uniformf(0.0, (double)MAP_HEIGHT);
+        random_range_uniformf(0.0, (float)MAP_HEIGHT);
     particle_filter->particles[m].state.pose.r =
         random_range_uniformf(0.0, 2 * PI);
   }
@@ -137,13 +137,13 @@ void particle_filter_step(particle_filter_t *particle_filter, map_t *map,
   for (size_t m = 0; m < num_random_particles; m++) {
     particle_t particle;
     particle.weight = 1.0 / particle_filter->params.num_particles;
-    particle.state.pose.x = random_range_uniformf(0.0, (double)MAP_WIDTH);
-    particle.state.pose.y = random_range_uniformf(0.0, (double)MAP_HEIGHT);
+    particle.state.pose.x = random_range_uniformf(0.0, (float)MAP_WIDTH);
+    particle.state.pose.y = random_range_uniformf(0.0, (float)MAP_HEIGHT);
     particle.state.pose.r = random_range_uniformf(0.0, 2 * PI);
     particle_filter->particles[m] = particle;
   }
 
-  double weights_sum = 0.0;
+  float weights_sum = 0.0;
   for (size_t m = 0; m < particle_filter->params.num_particles; m++) {
     // update with motion model
     particle_filter_motion_update(&particle_filter->particles[m], control);
@@ -152,18 +152,18 @@ void particle_filter_step(particle_filter_t *particle_filter, map_t *map,
                                   &map->landmarks, observations);
     weights_sum += particle_filter->particles[m].weight;
   }
-  double weights_mean = weights_sum / particle_filter->params.num_particles;
+  float weights_mean = weights_sum / particle_filter->params.num_particles;
 
   // normalise the weights and calculate the variance of the weights
-  double weights_sum_sq = 0.0;  // sum of the squares of the weights
+  float weights_sum_sq = 0.0;  // sum of the squares of the weights
   for (size_t m = 0; m < particle_filter->params.num_particles; m++) {
     // normalise the weights
     particle_filter->particles[m].weight /= weights_sum;
     // sum of squares of the weights - for calculating the variance
-    double diff = (weights_mean - particle_filter->particles[m].weight);
+    float diff = (weights_mean - particle_filter->particles[m].weight);
     weights_sum_sq += diff * diff;
   }
-  double weights_variance =
+  float weights_variance =
       weights_sum_sq / (particle_filter->params.num_particles - 1);
 
   log_debug("weights_variance: %f\n", weights_variance);
@@ -173,7 +173,7 @@ void particle_filter_step(particle_filter_t *particle_filter, map_t *map,
   // there is no point in resampling, however if they are concentrated on a
   // small set of particles then we should resample - in order to achieve
   // the target probability distribution.
-  double variance_threshold = 0.0001 / particle_filter->params.num_particles;
+  float variance_threshold = 0.0001 / particle_filter->params.num_particles;
   if (weights_variance > variance_threshold) {
     // resampling step
     log_debug("resampling\n\n");
@@ -192,7 +192,7 @@ void particle_filter_step(particle_filter_t *particle_filter, map_t *map,
   }
   // mean
   pose_divide_inplace(&particle_filter->state.pose,
-                      (double)particle_filter->params.num_particles);
+                      (float)particle_filter->params.num_particles);
   // calculate the estimated state variance
   pose_init(&particle_filter->state.error);
   for (size_t m = 0; m < particle_filter->params.num_particles; m++) {
@@ -202,9 +202,9 @@ void particle_filter_step(particle_filter_t *particle_filter, map_t *map,
     pose_add_inplace_unclamped_rot(&particle_filter->state.error, &diff);
   }
   pose_divide_inplace(&particle_filter->state.error,
-                      (double)particle_filter->params.num_particles);
+                      (float)particle_filter->params.num_particles);
   time_t end = time(NULL);
-  double elapsed = difftime(end, start);
+  float elapsed = difftime(end, start);
   log_debug("particle_filter_step took %f seconds\n", elapsed);
   log_debug("state: \nx: %f\ny: %f\nr: %f\n", particle_filter->state.pose.x,
             particle_filter->state.pose.y, particle_filter->state.pose.r);

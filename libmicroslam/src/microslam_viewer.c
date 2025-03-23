@@ -17,7 +17,7 @@ static void key_callback(GLFWwindow *window, int key, int scancode, int action,
 }
 
 void draw_robot(pose_t *pose) {
-  static double size = 0.2;
+  static float size = 0.2;
   glPushMatrix();
   glTranslatef(pose->x, pose->y, 0);
   glRotatef(pose->r * 180 / PI, 0, 0, 1);
@@ -30,24 +30,9 @@ void draw_robot(pose_t *pose) {
   glPopMatrix();
 }
 
-void draw_landmarks(landmarks_t *landmarks) {
-  static double size = 0.2;
-  for (size_t i = 0; i < landmarks->size; i++) {
-    glPushMatrix();
-    glTranslatef(landmarks->poses[i].x, landmarks->poses[i].y, 0);
-    glBegin(GL_TRIANGLES);
-    glColor3f(0, 1, 0);
-    glVertex2f(0, size);
-    glVertex2f(size, -size);
-    glVertex2f(-size, -size);
-    glEnd();
-    glPopMatrix();
-  }
-}
-
 void draw_particles(particle_t *particles, size_t num_particles) {
   for (size_t i = 0; i < num_particles; i++) {
-    double size = 0.05;
+    float size = 0.05;
     glPushMatrix();
     glTranslatef(particles[i].state.pose.x, particles[i].state.pose.y, 0);
     glRotatef(particles[i].state.pose.r * 180 / PI, 0, 0, 1);
@@ -62,7 +47,7 @@ void draw_particles(particle_t *particles, size_t num_particles) {
 }
 
 void draw_state(state_t *state) {
-  static double size = 0.2;
+  static float size = 0.2;
   glPushMatrix();
   glTranslatef(state->pose.x, state->pose.y, 0);
   glRotatef(state->pose.r * 180 / PI, 0, 0, 1);
@@ -75,24 +60,24 @@ void draw_state(state_t *state) {
   glPopMatrix();
 }
 
-void draw_map(map_t *map) {
-  for (size_t x = 0; x < MAP_WIDTH; x++) {
-    for (size_t y = 0; y < MAP_HEIGHT; y++) {
-      if (map->map[x][y] == 1) {
-        glPushMatrix();
-        glTranslatef(x, y, 0);
-        glBegin(GL_QUADS);
-        glColor3f(0, 0, 0);
-        glVertex2f(0, 0);
-        glVertex2f(1, 0);
-        glVertex2f(1, 1);
-        glVertex2f(0, 1);
-        glEnd();
-        glPopMatrix();
-      }
-    }
-  }
-}
+// void draw_map(map_t *map) {
+//   for (size_t x = 0; x < MAP_WIDTH; x++) {
+//     for (size_t y = 0; y < MAP_HEIGHT; y++) {
+//       if (map->map[x][y] == 1) {
+//         glPushMatrix();
+//         glTranslatef(x, y, 0);
+//         glBegin(GL_QUADS);
+//         glColor3f(0, 0, 0);
+//         glVertex2f(0, 0);
+//         glVertex2f(1, 0);
+//         glVertex2f(1, 1);
+//         glVertex2f(0, 1);
+//         glEnd();
+//         glPopMatrix();
+//       }
+//     }
+//   }
+// }
 
 void draw_observations(pose_t *pose, observations_t *observations) {
   for (size_t i = 0; i < observations->size; i++) {
@@ -132,7 +117,7 @@ void viewer_draw(microslam_viewer_t *viewer, particle_filter_t *particle_filter,
                  map_t *map, robot_t *robot, observations_t *observations) {
   glClear(GL_COLOR_BUFFER_BIT);
   // draw_map(map);
-  draw_landmarks(&map->landmarks);
+  // draw_landmarks(&map->landmarks);
   draw_robot(&robot->state.pose);
   draw_observations(&robot->state.pose, observations);
   draw_particles(particle_filter->particles,

@@ -13,22 +13,22 @@
 
 #define PI 3.14159265359
 
-double shortest_rotation(double value);
+float shortest_rotation(float value);
 
 /**
  * @brief Rotate a value by a given rotation
  *
  * @param value
  * @param rotation
- * @return double
+ * @return float
  */
-double rotate(double value, double rotation);
+float rotate(float value, float rotation);
 
-double random_uniform();
+float random_uniform();
 
 int random_range_uniform(int min, int max);
 
-double random_range_uniformf(double min, double max);
+float random_range_uniformf(float min, float max);
 
 /**
  *
@@ -40,9 +40,9 @@ double random_range_uniformf(double min, double max);
  *
  * @param mean
  * @param stdev
- * @return double
+ * @return float
  */
-double random_normal(double mean, double stddev);
+float random_normal(float mean, float stddev);
 /*
  * Generate a random number in a range using an approximation of the normal
  * distribution.
@@ -62,9 +62,9 @@ float random_range_normalf(float min, float max);
  * @param x
  * @param mean
  * @param stddev
- * @return double
+ * @return float
  */
-double normal_pdf(double x, double mean, double stddev);
+float normal_pdf(float x, float mean, float stddev);
 
 /**
  * @brief Calculate the relative bearing from a pose to a point.
@@ -75,9 +75,9 @@ double normal_pdf(double x, double mean, double stddev);
  * @param pose
  * @param x
  * @param y
- * @return double
+ * @return float
  */
-double calc_bearing_to_point(pose_t *a, pose_t *b);
+float calc_bearing_to_point(pose_t *a, pose_t *b);
 
 /**
  * @brief Sets all components of a pose to zero
@@ -86,7 +86,7 @@ double calc_bearing_to_point(pose_t *a, pose_t *b);
  */
 void pose_init(pose_t *pose);
 
-double pose_distance(pose_t *a, pose_t *b);
+float pose_distance(pose_t *a, pose_t *b);
 
 void pose_add_inplace(pose_t *a, pose_t *b);
 
@@ -96,6 +96,6 @@ pose_t pose_subtract(pose_t *a, pose_t *b);
 
 void pose_multiply_inplace_unclamped_rot(pose_t *a, pose_t *b);
 
-void pose_divide_inplace(pose_t *pose, double divisor);
+void pose_divide_inplace(pose_t *pose, float divisor);
 
 #endif /* INCLUDE_MICROSLAM_UTILS_H_ */
