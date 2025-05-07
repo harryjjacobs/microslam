@@ -31,7 +31,7 @@ LIB = $(BUILD_DIR)/libmicroslam.a
 TEST = $(BUILD_DIR)/test
 
 # linker flags
-LD_FLAGS = -lm -lglfw -lGL -lGLEW
+LD_FLAGS = -lm -lglfw -lGL
 
 # microslam application target
 APP = $(BUILD_DIR)/microslam
@@ -53,7 +53,7 @@ $(BUILD_DIR)/log.o: $(LOG)
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 # build the microslam library
-$(LIB): $(OBJ) $(BUILD_DIR)/log.o
+$(LIB): $(OBJ) $(BUILD_DIR)/log.o include/microslam/*.h
 	@mkdir -p $(@D)
 	$(AR) rcs $@ $^
 
@@ -78,7 +78,7 @@ $(BUILD_DIR)/%.o: src/%.c
 	$(CC) $(CFLAGS) -c -o $@ $< -Ithirdparty
 
 # build test object files
-$(BUILD_DIR)/%.o: test/%.c
+$(BUILD_DIR)/%.o: test/%.c test/*.h
 	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) -c -o $@ $< -Ithirdparty
 

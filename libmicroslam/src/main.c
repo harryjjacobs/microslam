@@ -2,166 +2,208 @@
 #include <math.h>
 #include <microslam/map.h>
 #include <microslam/microslam_viewer.h>
-#include <microslam/observation.h>
-#include <microslam/particle_filter.h>
+#include <microslam/scan.h>
 
-#define PARTICLE_COUNT 5000
+#define PARTICLE_COUNT 2000
 
-void get_observations(map_t *map, robot_t *robot,
-                      observations_t *observations) {
-  for (size_t i = 0; i < map->landmarks.size; i++) {
-    // check if the landmark is in the robot's FOV
-    float min_bearing = -robot->sensor.fov / 2;
-    float max_bearing = robot->sensor.fov / 2;
-    float bearing =
-        calc_bearing_to_point(&robot->state.pose, &map->landmarks.poses[i]);
-    float range = pose_distance(&map->landmarks.poses[i], &robot->state.pose);
-    if (bearing > min_bearing && bearing < max_bearing &&
-        range < robot->sensor.range) {
-      log_debug("robot->state.pose.r %f\n", robot->state.pose.r);
-      log_debug("min_bearing: %f\n", min_bearing);
-      log_debug("max_bearing: %f\n", max_bearing);
-      log_debug("bearing: %f\n", bearing);
-      log_debug("range: %f\n", range);
-      log_debug("observed\n");
-      observation_t observation;
-      observation.bearing = bearing;
-      observation.bearing_error = robot->sensor.bearing_error;
-      observation.range = range;
-      observation.range_error = robot->sensor.range_error;
-      observation.landmark_index = i;
-      observations_add(observations, observation);
+/**
+ * @brief Generate a scan inside a roughly square area
+ *
+ * @param gt_scan The ground truth scan to generate
+ */
+void generate_gt_scan(scan_t *gt_scan) {
+  const float square_half_size = 1.5f;
+  for (size_t i = 0; i < 360; i++) {
+    float r = DEG2RAD(i);
+    float dist_x = fabs(square_half_size / cosf(r));
+    float dist_y = fabs(square_half_size / sinf(r));
+
+    gt_scan->range[i] = fmin(dist_x, dist_y) + 0.15f * sinf(4.0f * r);
+  }
+}
+
+/**
+ * @brief Generate a noisy scan from a ground truth scan at a given pose
+ *
+ * @param gt_scan The ground truth scan
+ * @param scan The noisy scan to generate
+ * @param pose The pose of the robot
+ * @param max_range The maximum range of the sensor
+ */
+void generate_noisy_scan(scan_t *gt_scan, scan_t *scan, pose_t *pose,
+                         float max_range) {
+  for (size_t i = 0; i < 360; i++) {
+    size_t idx = i;
+
+    // get the x and y of the scan in the world
+    float r = DEG2RAD(idx);
+    float x = gt_scan->range[idx] * cosf(r);
+    float y = gt_scan->range[idx] * sinf(r);
+
+    // get the distance to the scan from the robot
+    float dx = x - pose->x;
+    float dy = y - pose->y;
+    float dist = sqrtf(dx * dx + dy * dy);
+    float angle = atan2f(dy, dx) - pose->r;
+    if (angle < 0) angle += TWO_PI;
+    size_t scan_idx = ((size_t)RAD2DEG(angle)) % 360;
+
+    // add noise to the range
+    if (dist > max_range) {
+      scan->range[scan_idx] = 0;
+    } else {
+      scan->range[scan_idx] = dist + random_normalf(0, scan->range_error);
     }
   }
 }
 
-void move_robot(robot_t *robot, motion_t *motion) {
-  robot->state.pose.x += motion->dx;
-  robot->state.pose.y += motion->dy;
-  robot->state.pose.r = rotate(robot->state.pose.r, motion->dr);
+void move(state_t *state, motion_t *motion) {
+  state->pose.x += motion->dx;
+  state->pose.y += motion->dy;
+  state->pose.r = rotate(state->pose.r, motion->dr);
 }
 
 int main() {
-  log_set_level(LOG_DEBUG);
+  log_set_level(LOG_INFO);
 
   microslam_viewer_t viewer;
   viewer_init(&viewer);
 
-  particle_filter_params_t particle_filter_params;
-  particle_filter_params.num_particles = PARTICLE_COUNT;
+  const float map_size = 5.0f;
+  const float map_depth = 9;
+  const float map_leaf_size = map_size / powf(2, map_depth);
 
-  particle_filter_t particle_filter;
-  particle_filter_init(&particle_filter, particle_filter_params);
+  occupancy_quadtree_t occ;
+  occupancy_quadtree_init(&occ, 0, 0, map_size, map_depth);
 
-  map_t map;
-  map_init(&map);
-
-  // map_add_landmark(&map, (pose_t){10, 10, 0});
-  map_add_landmark(&map, (pose_t){MAP_WIDTH / 2 + 1, MAP_HEIGHT / 2 + 1, 0}, 0);
-  map_add_landmark(&map, (pose_t){MAP_WIDTH / 2 + 5, MAP_HEIGHT / 2, 0}, 1);
-  map_add_landmark(&map, (pose_t){MAP_WIDTH / 2 + 2, MAP_HEIGHT / 2 + 1.1, 0},
-                   1);
-  map_add_landmark(&map, (pose_t){MAP_WIDTH / 2 + 0.2, MAP_HEIGHT / 2 + 1, 0},
-                   1);
+  scan_t gt_scan, scan;
+  scan_init(&gt_scan, 0.0f, 0.0f);
+  scan_init(&scan, 0.0f, 0.0f);
+  // scan_init(&scan, 0.001f, 0.02f);
+  generate_gt_scan(&gt_scan);
 
   robot_t robot;
-  robot.state.pose.x = MAP_WIDTH / 2;
-  robot.state.pose.y = MAP_HEIGHT / 2;
+  robot.lidar.max_range = 0.8f;
+  // robot.lidar.range_error = 0.1;
+  // robot.lidar.bearing_error = 0.0;
+
+  robot.state.pose.x = 0.75f;
+  robot.state.pose.y = 0;
   robot.state.pose.r = 0;
 
-  robot.sensor.range = 2;
-  robot.sensor.fov = PI / 6;
-  robot.sensor.range_error = 0.1;
-  robot.sensor.bearing_error = 0.1;
+  state_t gt_state;
+  gt_state.pose.x = 0.75f;
+  gt_state.pose.y = 0;
+  gt_state.pose.r = 0;
 
-  {
-    // motion_t motion;
-    // motion.dx = 0;
-    // motion.dy = 0;
-    // motion.dr = 0;
-    // motion.error.x = 0.3;
-    // motion.error.y = 0.3;
-    // motion.error.r = 0.1;
+  // draw ground truth scan
+  // viewer_begin_draw(&viewer);
+  // viewer_draw_scan(&viewer, &gt_scan, &robot.state.pose, 1, 0, 1);
+  // map_add_scan(&occ, &gt_scan, &robot.state.pose);
+  // viewer_draw_occupancy(&viewer, &occ);
+  // viewer_end_draw(&viewer);
 
-    // observations_t observations;
-    // observations_init(&observations);
+  while (!glfwWindowShouldClose(viewer.window)) {
+    // process input
+    float linear_speed = 0.01;
+    float angular_speed = 0.02;
 
-    // observation_t observation_1;
-    // observation_1.signature = 0;
-    // observation_1.signature_error = 0.1;
-    // observation_1.bearing = -PI / 4;
-    // observation_1.bearing_error = 0.1;
-    // observation_1.range = 1;
-    // observation_1.range_error = 0.1;
-    // observation_1.landmark_index = 0;
+    motion_t gt_motion;
+    gt_motion.dx = 0;
+    gt_motion.dy = 0;
+    gt_motion.dr = 0;
+    gt_motion.error.x = 0;
+    gt_motion.error.y = 0;
+    gt_motion.error.r = 0;
 
-    // observations_add(&observations, observation_1);
+    motion_t motion;
+    motion.dx = 0;
+    motion.dy = 0;
+    motion.dr = 0;
+    motion.error.x = 0.001;
+    motion.error.y = 0.001;
+    motion.error.r = 0.005;
 
-    // observation_t observation_2;
-    // observation_2.signature = 1;
-    // observation_2.signature_error = 0.1;
-    // observation_2.bearing = -PI / 2;
-    // observation_2.bearing_error = 0.1;
-    // observation_2.range = 5;
-    // observation_2.range_error = 0.1;
-    // observation_2.landmark_index = 1;
+    microslam_viewer_key key = viewer_getkey(&viewer);
+    switch (key) {
+      case microslam_viewer_key_up:
+        motion.dx = linear_speed * cos(gt_state.pose.r);
+        motion.dy = linear_speed * sin(gt_state.pose.r);
 
-    // observations_add(&observations, observation_2);
-
-    // particle_filter_step(&particle_filter, &map, &motion, &observation1);
-    // particle_filter_step(&particle_filter, &map, &motion, &observation2);
-    // particle_filter_step(&particle_filter, &map, &motion, &observation);
-    // particle_filter_step(&particle_filter, &map, &motion, &observation);
-
-    while (!glfwWindowShouldClose(viewer.window)) {
-      // process input
-      motion_t motion;
-      motion.dx = 0;
-      motion.dy = 0;
-      motion.dr = 0;
-      motion.error.x = 0.002;
-      motion.error.y = 0.002;
-      motion.error.r = 0.002;
-      float linear_speed = 0.01;
-      float angular_speed = 0.02;
-      microslam_viewer_key key = viewer_getkey(&viewer);
-      switch (key) {
-        case microslam_viewer_key_up:
-          motion.dx = -(linear_speed + random_normal(0, motion.error.x)) *
-                      cos(robot.state.pose.r - PI / 2);
-          motion.dy = -(linear_speed + random_normal(0, motion.error.y)) *
-                      sin(robot.state.pose.r - PI / 2);
-          break;
-        case microslam_viewer_key_down:
-          motion.dx = (linear_speed + random_normal(0, motion.error.x)) *
-                      cos(robot.state.pose.r - PI / 2);
-          motion.dy = (linear_speed + random_normal(0, motion.error.y)) *
-                      sin(robot.state.pose.r - PI / 2);
-          break;
-        case microslam_viewer_key_left:
-          motion.dr = angular_speed + random_normal(0, motion.error.r);
-          break;
-        case microslam_viewer_key_right:
-          motion.dr = -angular_speed + random_normal(0, motion.error.r);
-          break;
-        default:
-          break;
-      }
-
-      observations_t observations;
-      observations_init(&observations);
-
-      if (key != microslam_viewer_key_none) {
-        move_robot(&robot, &motion);
-
-        get_observations(&map, &robot, &observations);
-
-        particle_filter_step(&particle_filter, &map, &motion, &observations);
-      }
-
-      // draw
-      viewer_draw(&viewer, &particle_filter, &map, &robot, &observations);
+        gt_motion.dx = (linear_speed + random_normalf(0, motion.error.x)) *
+                       cos(gt_state.pose.r);
+        gt_motion.dy = (linear_speed + random_normalf(0, motion.error.y)) *
+                       sin(gt_state.pose.r);
+        break;
+      case microslam_viewer_key_down:
+        motion.dx = -linear_speed * cos(gt_state.pose.r);
+        motion.dy = -linear_speed * sin(gt_state.pose.r);
+        gt_motion.dx = (-linear_speed + random_normalf(0, motion.error.x)) *
+                       cos(gt_state.pose.r);
+        gt_motion.dy = (-linear_speed + random_normalf(0, motion.error.y)) *
+                       sin(gt_state.pose.r);
+        break;
+      case microslam_viewer_key_left:
+        motion.dr = angular_speed;
+        gt_motion.dr = angular_speed + random_normalf(0, motion.error.r);
+        break;
+      case microslam_viewer_key_right:
+        motion.dr = -angular_speed;
+        gt_motion.dr = -angular_speed + random_normalf(0, motion.error.r);
+        break;
+      default:
+        break;
     }
+
+    if (key != microslam_viewer_key_none) {
+      // move
+      move(&gt_state, &gt_motion);
+      move(&robot.state, &motion);
+
+      scan_reset(&scan);
+      // the scan is generated from the ground truth scan
+      // and moved to the ground truth robot pose
+      generate_noisy_scan(&gt_scan, &scan, &gt_state.pose,
+                          robot.lidar.max_range);
+
+      double entropy = map_entropy(&occ);
+      log_info("occupancy map entropy: %f", entropy);
+
+      if (entropy < map_leaf_size * 0.1) {
+        log_info("map is empty, skipping scan matching");
+        // update the occupancy grid
+        map_add_scan(&occ, &scan, &robot.state.pose);
+      } else {
+        // perform scan matching float score = -INFINITY;
+        pose_t pose_estimate;
+        float score = -INFINITY;
+        if (map_scan_match(&occ, &scan, &robot.state, &pose_estimate, &score,
+                           1000)) {
+          log_info("scan match score: %f", score);
+          log_info("scan match pose estimate: %f %f %f", pose_estimate.x,
+                   pose_estimate.y, pose_estimate.r);
+          // robot.state.pose.x += 0.07f * (pose_estimate.x - robot.state.pose.x);
+          // robot.state.pose.y += 0.07f * (pose_estimate.y - robot.state.pose.y);
+          // robot.state.pose.r += 0.04f * (pose_estimate.r - robot.state.pose.r);
+          robot.state.pose.x = pose_estimate.x;
+          robot.state.pose.y = pose_estimate.y;
+          robot.state.pose.r = pose_estimate.r;
+
+          // update the occupancy grid
+          map_add_scan(&occ, &scan, &robot.state.pose);
+        }
+      }
+
+      log_info("ground truth pose: %f %f %f", gt_state.pose.x, gt_state.pose.y,
+               gt_state.pose.r);
+      log_info("robot pose: %f %f %f", robot.state.pose.x, robot.state.pose.y,
+               robot.state.pose.r);
+    }
+
+    // draw
+    viewer_begin_draw();
+    viewer_draw_all(&occ, &robot.state, &gt_state, &scan);
+    viewer_end_draw(&viewer);
   }
 
   return 0;

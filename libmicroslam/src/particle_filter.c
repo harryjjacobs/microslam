@@ -1,5 +1,6 @@
 #include <log/log.h>
 #include <math.h>
+#include <microslam/occupancy_quadtree.h>
 #include <microslam/particle_filter.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -34,70 +35,111 @@ void particle_filter_low_variance_resampling(
   particle_filter->particles = particles;
 }
 
-float observation_likelihood(observation_t *observation,
-                             observation_t *predicted_observation) {
-  float likelihood_bearing =
-      normal_pdf(observation->bearing, predicted_observation->bearing,
-                 observation->bearing_error);
-  float likelihood_range =
-      normal_pdf(observation->range, predicted_observation->range,
-                 observation->range_error);
-  return likelihood_bearing * likelihood_range;
+float observation_likelihood(float observation, float predicted_observation,
+                             float error) {
+  float likelihood = normal_pdf(observation, predicted_observation, error);
+  return likelihood;
 }
 
 /**
- * @brief Update the particles using the motion model
+ * @brief Update a particle using the motion model
  *
  * @param control
  */
-void particle_filter_motion_update(particle_t *particle, motion_t *control) {
-  particle->state.pose.x += control->dx + random_normal(0, control->error.x);
-  particle->state.pose.y += control->dy + random_normal(0, control->error.y);
-  particle->state.pose.r = rotate(particle->state.pose.r, control->dr) +
-                           random_normal(0, control->error.r);
+void particle_filter_particle_motion_update(particle_t *particle,
+                                            motion_t *control,
+                                            particle_filter_params_t *params) {
+  particle->state.pose.x += control->dx + random_normalf(0, control->error.x);
+  particle->state.pose.y += control->dy + random_normalf(0, control->error.y);
+  particle->state.pose.r =
+      clamp_rotation(rotate(particle->state.pose.r, control->dr) +
+                     random_normalf(0, control->error.r));
+  // wrap particle position to be within the map
+  particle->state.pose.x =
+      fminf(fmaxf(particle->state.pose.x, -particle->state.pose.x),
+            particle->state.pose.x);
+  particle->state.pose.y =
+      fminf(fmaxf(particle->state.pose.y, -particle->state.pose.y),
+            particle->state.pose.y);
 }
 
 /**
- * @brief Update the weights from the sensor observation
+ * @brief Update the weights of a particle from the sensor observation
  *
  * @param observation
  */
-void particle_filter_sensor_update(particle_t *particle, landmarks_t *landmarks,
-                                   observations_t *observations) {
-  // importance weight = the probablity of measurement z under the particle x
-  // i.e. p(z | x)
-  // assuming we are at particle x, what is the probability we are seeing this
-  // observation
-  // p(z | x) = p(x | z).p(z)
-  // what is the likelihood that we are seeing this observation based on this
-  // particle location
+void particle_filter_sensor_update(particle_t *particle,
+                                   occupancy_quadtree_t *occupancy_quadtree,
+                                   lidar_sensor_t *lidar, scan_t *scan) {
+  // // importance weight = the probablity of measurement z under the particle x
+  // // i.e. p(z | x)
+  // // assuming we are at particle x, what is the probability we are seeing
+  // this
+  // // observation
+  // // p(z | x) = p(x | z).p(z)
+  // // what is the likelihood that we are seeing this observation based on this
+  // // particle location
+
+  // // calculate the predicted measurements - i.e. if we're at this particle,
+  // // what would the measurement to each of the landmarks be
+  // float likelihood = 1.0;
+  // for (size_t i = 0; i < scan->size; i++) {
+  //   pose_t *landmark_pose =
+  //       &landmarks->poses[observations->observations[i].landmark_index];
+  //   // We use the gaussian probability function to calculate the likelihood
+  //   of
+  //   // getting the given sensor observation, given the predicted measurement.
+  //   // Here we evaluate the sensor measurement using a normal PDF with a mean
+  //   // of predicted measurement and stddev of the sensor. e.g. if the sensor
+  //   // measurement is identical to the expected measurement for this particle
+  //   // and landmark the likelihood will be at maximum
+  //   observation_t predicted_observation;
+  //   predicted_observation.range =
+  //       pose_distance(landmark_pose, &particle->state.pose);
+  //   predicted_observation.bearing =
+  //       calc_bearing_to_point(&particle->state.pose, landmark_pose);
+
+  //   likelihood *= observation_likelihood(&observations->observations[i],
+  //                                        &predicted_observation);
+  // }
+
+  // // update the weight for this particle based on the likelihood (we scale it
+  // // later)
+  // particle->weight *= likelihood;
+  // particle->weight += 1.0e-300;  // avoid zero weight
 
   // calculate the predicted measurements - i.e. if we're at this particle,
-  // what would the measurement to each of the landmarks be
+  // what would a scan look like (based on the current occupancy quadtree)
   float likelihood = 1.0;
-  for (size_t i = 0; i < observations->size; i++) {
-    pose_t *landmark_pose =
-        &landmarks->poses[observations->observations[i].landmark_index];
-    // We use the gaussian probability function to calculate the likelihood of
-    // getting the given sensor observation, given the predicted measurement.
-    // Here we evaluate the sensor measurement using a normal PDF with a mean
-    // of predicted measurement and stddev of the sensor. e.g. if the sensor
-    // measurement is identical to the expected measurement for this particle
-    // and landmark the likelihood will be at maximum
-    observation_t predicted_observation;
-    predicted_observation.range =
-        pose_distance(landmark_pose, &particle->state.pose);
-    predicted_observation.bearing =
-        calc_bearing_to_point(&particle->state.pose, landmark_pose);
+  for (unsigned short i = 0; i < 360;
+       i += 5) {  // only use every 5th scan to speed up
+    float r = particle->state.pose.r + DEG2RAD(i);
+    float dx = cosf(r);
+    float dy = sinf(r);
 
-    likelihood *= observation_likelihood(&observations->observations[i],
-                                         &predicted_observation);
+    float pred_range;
+    occupancy_quadtree_t *hit = occupancy_quadtree_raycast(
+        occupancy_quadtree, particle->state.pose.x, particle->state.pose.y, dx,
+        dy, lidar->max_range, &pred_range);
+    if (hit == NULL) {
+      pred_range = 0;
+      continue;
+    }
+    if (scan->range[i] < 1e-6 && hit != NULL) {
+      continue;
+    }
+    float l =
+        observation_likelihood(scan->range[i], pred_range, lidar->range_error);
+    // l = fmaxf(l, 1e-6);  // avoid zero likelihood
+    likelihood *= l;
   }
 
   // update the weight for this particle based on the likelihood (we scale it
   // later)
   particle->weight *= likelihood;
   particle->weight += 1.0e-300;  // avoid zero weight
+
+  // printf("likelihood: %f\n", likelihood);
 }
 
 void particle_filter_init(particle_filter_t *particle_filter,
@@ -109,16 +151,27 @@ void particle_filter_init(particle_filter_t *particle_filter,
   for (size_t m = 0; m < particle_filter->params.num_particles; m++) {
     particle_filter->particles[m].weight = 1.0 / params.num_particles;
     particle_filter->particles[m].state.pose.x =
-        random_range_uniformf(0.0, (float)MAP_WIDTH);
+        random_range_uniformf(-params.map_width / 2, params.map_width / 2);
     particle_filter->particles[m].state.pose.y =
-        random_range_uniformf(0.0, (float)MAP_HEIGHT);
+        random_range_uniformf(-params.map_height / 2, params.map_height / 2);
+    float min_rotation = params.initial_rotation - params.random_rotation_range;
+    float max_rotation = params.initial_rotation + params.random_rotation_range;
     particle_filter->particles[m].state.pose.r =
-        random_range_uniformf(0.0, 2 * PI);
+        random_range_uniformf(min_rotation, max_rotation);
   }
 }
 
-void particle_filter_step(particle_filter_t *particle_filter, map_t *map,
-                          motion_t *control, observations_t *observations) {
+void particle_filter_motion_update(particle_filter_t *particle_filter,
+                                   motion_t *control) {
+  for (size_t m = 0; m < particle_filter->params.num_particles; m++) {
+    particle_filter_particle_motion_update(&particle_filter->particles[m],
+                                           control, &particle_filter->params);
+  }
+}
+
+void particle_filter_step(particle_filter_t *particle_filter,
+                          occupancy_quadtree_t *occ, motion_t *control,
+                          lidar_sensor_t *lidar, scan_t *scan) {
   time_t start = time(NULL);
 
   // As mentioned in  the paper:
@@ -133,12 +186,16 @@ void particle_filter_step(particle_filter_t *particle_filter, map_t *map,
   // results section of this paper."
 
   // add a small number of random particles
-  size_t num_random_particles = particle_filter->params.num_particles / 100;
+  size_t num_random_particles = particle_filter->params.num_particles / 10;
   for (size_t m = 0; m < num_random_particles; m++) {
     particle_t particle;
     particle.weight = 1.0 / particle_filter->params.num_particles;
-    particle.state.pose.x = random_range_uniformf(0.0, (float)MAP_WIDTH);
-    particle.state.pose.y = random_range_uniformf(0.0, (float)MAP_HEIGHT);
+    particle.state.pose.x =
+        random_range_uniformf(-particle_filter->params.map_width / 2,
+                              particle_filter->params.map_width / 2);
+    particle.state.pose.y =
+        random_range_uniformf(-particle_filter->params.map_height / 2,
+                              particle_filter->params.map_height / 2);
     particle.state.pose.r = random_range_uniformf(0.0, 2 * PI);
     particle_filter->particles[m] = particle;
   }
@@ -146,10 +203,11 @@ void particle_filter_step(particle_filter_t *particle_filter, map_t *map,
   float weights_sum = 0.0;
   for (size_t m = 0; m < particle_filter->params.num_particles; m++) {
     // update with motion model
-    particle_filter_motion_update(&particle_filter->particles[m], control);
+    particle_filter_particle_motion_update(&particle_filter->particles[m],
+                                           control, &particle_filter->params);
     // update weight from sensor observation
-    particle_filter_sensor_update(&particle_filter->particles[m],
-                                  &map->landmarks, observations);
+    particle_filter_sensor_update(&particle_filter->particles[m], occ, lidar,
+                                  scan);
     weights_sum += particle_filter->particles[m].weight;
   }
   float weights_mean = weights_sum / particle_filter->params.num_particles;
@@ -190,9 +248,11 @@ void particle_filter_step(particle_filter_t *particle_filter, map_t *map,
     pose_add_inplace_unclamped_rot(&particle_filter->state.pose,
                                    &particle_filter->particles[m].state.pose);
   }
+
   // mean
   pose_divide_inplace(&particle_filter->state.pose,
                       (float)particle_filter->params.num_particles);
+
   // calculate the estimated state variance
   pose_init(&particle_filter->state.error);
   for (size_t m = 0; m < particle_filter->params.num_particles; m++) {
@@ -203,6 +263,7 @@ void particle_filter_step(particle_filter_t *particle_filter, map_t *map,
   }
   pose_divide_inplace(&particle_filter->state.error,
                       (float)particle_filter->params.num_particles);
+
   time_t end = time(NULL);
   float elapsed = difftime(end, start);
   log_debug("particle_filter_step took %f seconds\n", elapsed);

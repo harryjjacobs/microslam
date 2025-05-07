@@ -1,7 +1,7 @@
 /*
  * utils.h
  *
- *  Created on: 13 Mar 2023
+ *  Created on: 13 Mar 2024
  *      Author: harryjjacobs
  */
 
@@ -11,9 +11,20 @@
 #include <microslam/types.h>
 #include <stdlib.h>
 
-#define PI 3.14159265359
+#define PI 3.14159265359f
+#define TWO_PI 6.28318530718f
+#define PI_2 1.57079632679f
 
-float shortest_rotation(float value);
+#define DEG2RAD(deg) ((deg) * PI / 180.0f)
+#define RAD2DEG(rad) ((rad) * 180.0f / PI)
+
+/**
+ * @brief Clamp a rotation to the range -PI to PI
+ *
+ * @param value
+ * @return float
+ */
+float clamp_rotation(float value);
 
 /**
  * @brief Rotate a value by a given rotation
@@ -24,10 +35,31 @@ float shortest_rotation(float value);
  */
 float rotate(float value, float rotation);
 
+/**
+ * @brief Generate a random number from a uniform distribution between 0 and 1
+ *
+ * @return float
+ */
 float random_uniform();
 
+/**
+ * @brief Generate a random integer number in a range using a uniform
+ * distribution
+ *
+ * @param min
+ * @param max
+ * @return int
+ */
 int random_range_uniform(int min, int max);
 
+/**
+ * @brief Generate a random floating point number in a range using a uniform
+ * distribution
+ *
+ * @param min
+ * @param max
+ * @return float
+ */
 float random_range_uniformf(float min, float max);
 
 /**
@@ -42,7 +74,7 @@ float random_range_uniformf(float min, float max);
  * @param stdev
  * @return float
  */
-float random_normal(float mean, float stddev);
+float random_normalf(float mean, float stddev);
 /*
  * Generate a random number in a range using an approximation of the normal
  * distribution.
@@ -80,22 +112,102 @@ float normal_pdf(float x, float mean, float stddev);
 float calc_bearing_to_point(pose_t *a, pose_t *b);
 
 /**
+ * @brief Calculate the squared euclidean distance squared between two points
+ *
+ * @param x1
+ * @param y1
+ * @param x2
+ * @param y2
+ * @return float
+ */
+float euclidean_distance_squared(float x1, float y1, float x2, float y2);
+
+/**
+ * @brief Calculate the euclidean distance between two poses
+ *
+ * @param x1
+ * @param y1
+ * @param x2
+ * @param y2
+ * @return float
+ */
+float euclidean_distance(float x1, float y1, float x2, float y2);
+
+/**
  * @brief Sets all components of a pose to zero
  *
  * @param pose
  */
 void pose_init(pose_t *pose);
 
+/**
+ * @brief Calculate the euclidean distance between two poses
+ *
+ * @param a
+ * @param b
+ * @return float
+ */
 float pose_distance(pose_t *a, pose_t *b);
 
+/**
+ * @brief Add two poses together in-place.
+ *
+ * @param a The pose to be added to
+ * @param b The pose to add to a
+ */
 void pose_add_inplace(pose_t *a, pose_t *b);
 
+/**
+ * @brief Add two poses together in-place, without clamping the rotation
+ *
+ * @param a The pose to be added to
+ * @param b The pose to add to a
+ */
 void pose_add_inplace_unclamped_rot(pose_t *a, pose_t *b);
 
+/**
+ * @brief Subtract two poses
+ *
+ * @param a
+ * @param b
+ * @return pose_t
+ */
 pose_t pose_subtract(pose_t *a, pose_t *b);
 
+/**
+ * @brief Multiply two poses together in-place, without clamping the rotation
+ *
+ * @param a
+ * @param b
+ */
 void pose_multiply_inplace_unclamped_rot(pose_t *a, pose_t *b);
 
+/**
+ * @brief Divide a pose by a scalar in-place
+ *
+ * @param pose
+ * @param divisor
+ */
 void pose_divide_inplace(pose_t *pose, float divisor);
+
+/**
+ * @brief Check if a ray intersects an axis-aligned bounding box
+ *
+ * @param aabb_min_x The minimum x coordinate of the AABB
+ * @param aabb_min_y The minimum y coordinate of the AABB
+ * @param aabb_max_x The maximum x coordinate of the AABB
+ * @param aabb_max_y The maximum y coordinate of the AABB
+ * @param ray_origin_x The x coordinate of the ray origin
+ * @param ray_origin_y The y coordinate of the ray origin
+ * @param ray_direction_x The x component of the ray direction
+ * @param ray_direction_y The y component of the ray direction
+ * @param t_out The distance along the ray where the nearest intersection occurs
+ * @return unsigned char
+ */
+unsigned char ray_intersects_aabb(float aabb_min_x, float aabb_min_y,
+                                  float aabb_max_x, float aabb_max_y,
+                                  float ray_origin_x, float ray_origin_y,
+                                  float ray_direction_x, float ray_direction_y,
+                                  float *t_out);
 
 #endif /* INCLUDE_MICROSLAM_UTILS_H_ */

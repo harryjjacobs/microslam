@@ -3,12 +3,9 @@
 #include <microslam/utils.h>
 #include <stdio.h>
 
-float shortest_rotation(float value) {
-  if (value < -PI) {
-    value += 2 * PI;
-  } else if (value > PI) {
-    value -= 2 * PI;
-  }
+float clamp_rotation(float value) {
+  while (value > PI) value -= TWO_PI;
+  while (value < -PI) value += TWO_PI;
   return value;
 }
 
@@ -21,7 +18,7 @@ float shortest_rotation(float value) {
  */
 float rotate(float value, float rotation) {
   value += rotation;
-  return shortest_rotation(value);
+  return clamp_rotation(value);
 }
 
 float random_uniform() { return (float)rand() / RAND_MAX; }
@@ -49,21 +46,12 @@ float random_range_uniformf(float min, float max) {
  * @param stdev
  * @return float
  */
-float random_normal(float mean, float stddev) {
-  // Box-Mueller results in two normally distributed random numbers.
-  // We can return the second one on the next function call.
-  static float next = INFINITY;  // infinity == empty
-  if (next != INFINITY) {
-    float ret = next;
-    next = INFINITY;
-    return ret;
-  }
+float random_normalf(float mean, float stddev) {
   float u1 = random_uniform();
   float u2 = random_uniform();
-  float r = sqrt(-2 * log(u1)) * stddev;
+  float r = sqrtf(-2 * log(u1)) * stddev;
   float theta = 2 * PI * u2;
-  next = r * sin(theta) + mean;
-  return r * cos(theta) + mean;
+  return r * cosf(theta) + mean;
 }
 
 /*
@@ -106,22 +94,30 @@ float random_range_normalf(float min, float max) {
  * @return float
  */
 float normal_pdf(float x, float mean, float stddev) {
-  static const float inv_sqrt_2pi = 0.3989422804014327;
+  static const float inv_sqrt_2pi = 0.3989422804014327f;
   float a = (x - mean) / stddev;
-  return inv_sqrt_2pi / stddev * exp(-0.5 * a * a);
+  return inv_sqrt_2pi / stddev * expf(-0.5 * a * a);
 }
 
 /**
- * @brief Calculate the relative bearing between two points. Not accounting
- * for the rotation of the pose
+ * @brief Calculate the relative bearing from a to the position of pose b. Not
+ * accounting for the rotation of b. It is the rotation that would have to be
+ * applied to a to make it point at b.
  *
- * @param pose
- * @param x
- * @param y
+ * @param a
+ * @param b
  * @return float
  */
 float calc_bearing_to_point(pose_t *a, pose_t *b) {
-  return rotate((atan2(b->y - a->y, b->x - a->x) - PI / 2), -a->r);
+  return rotate((atan2f(b->y - a->y, b->x - a->x) - PI_2), -a->r);
+}
+
+float euclidean_distance_squared(float x1, float y1, float x2, float y2) {
+  return (x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2);
+}
+
+float euclidean_distance(float x1, float y1, float x2, float y2) {
+  return sqrtf(euclidean_distance_squared(x1, y1, x2, y2));
 }
 
 void pose_init(pose_t *pose) {
@@ -131,7 +127,7 @@ void pose_init(pose_t *pose) {
 }
 
 float pose_distance(pose_t *a, pose_t *b) {
-  return sqrt((a->x - b->x) * (a->x - b->x) + (a->y - b->y) * (a->y - b->y));
+  return sqrtf((a->x - b->x) * (a->x - b->x) + (a->y - b->y) * (a->y - b->y));
 }
 
 void pose_add_inplace(pose_t *a, pose_t *b) {
@@ -164,4 +160,25 @@ void pose_divide_inplace(pose_t *pose, float divisor) {
   pose->x /= divisor;
   pose->y /= divisor;
   pose->r /= divisor;
+}
+
+unsigned char ray_intersects_aabb(float aabb_min_x, float aabb_min_y,
+                                  float aabb_max_x, float aabb_max_y,
+                                  float ray_origin_x, float ray_origin_y,
+                                  float ray_direction_x, float ray_direction_y,
+                                  float *t_out) {
+  float tx1 = (aabb_min_x - ray_origin_x) / ray_direction_x,
+        tx2 = (aabb_max_x - ray_origin_x) / ray_direction_x;
+  float ty1 = (aabb_min_y - ray_origin_y) / ray_direction_y,
+        ty2 = (aabb_max_y - ray_origin_y) / ray_direction_y;
+
+  float tmin = fmax(fmin(tx1, tx2), fmin(ty1, ty2));
+  float tmax = fmin(fmax(tx1, tx2), fmax(ty1, ty2));
+
+  if (tmax < 0 || tmin > tmax) return 0;  // No intersection
+
+  // tmin will be negative if the ray starts inside the AABB
+  *t_out = (tmin >= 0) ? tmin : tmax;
+
+  return 1;
 }

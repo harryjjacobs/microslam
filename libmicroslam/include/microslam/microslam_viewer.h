@@ -18,8 +18,13 @@ typedef struct microslam_viewer_t {
 } microslam_viewer_t;
 
 void viewer_init(microslam_viewer_t *viewer);
-void viewer_draw(microslam_viewer_t *viewer, particle_filter_t *particle_filter,
-                 map_t *map, robot_t *robot, observations_t *observations);
+void viewer_begin_draw();
+void viewer_end_draw(microslam_viewer_t *viewer);
+void viewer_draw_scan(scan_t *scan, pose_t *pose, float r, float g, float b);
+void viewer_draw_occupancy(occupancy_quadtree_t *occupancy);
+void viewer_draw_all(occupancy_quadtree_t *occupancy,
+                     state_t *estimated_robot_state, state_t *gt_robot_state,
+                     scan_t *scan);
 void viewer_wait(microslam_viewer_t *viewer);
 microslam_viewer_key viewer_getkey(microslam_viewer_t *viewer);
 void viewer_destroy(microslam_viewer_t *viewer);
