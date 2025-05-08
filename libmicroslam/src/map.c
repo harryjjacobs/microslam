@@ -82,38 +82,6 @@ void compute_scan_score(occupancy_quadtree_t *occupancy, scan_t *scan,
   }
 }
 
-// void map_scan_match(occupancy_quadtree_t *occupancy, scan_t *scan,
-//                     state_t *prior, pose_t *estimate, float *score,
-//                     unsigned short iterations) {
-//   *score = -INFINITY;
-//   *estimate = prior->pose;
-
-//   float current_score;
-//   pose_t current_estimate = prior->pose;
-//   pose_t error = prior->error;
-
-//   unsigned short i = 0;
-//   while (i < iterations) {
-//     current_estimate.x += random_normalf(0, error.x);
-//     current_estimate.y += random_normalf(0, error.y);
-//     current_estimate.r += random_normalf(0, error.r);
-
-//     // compute the score at the current estimate
-//     compute_scan_score(occupancy, scan, &current_estimate, &current_score);
-
-//     // if the score is better than the best score, update the best score
-//     if (current_score > *score) {
-//       *score = current_score;
-//       *estimate = current_estimate;
-//     }
-
-//     i++;
-//   }
-// }
-
-// void compute_scan_score(occupancy_quadtree_t *occupancy, scan_t *scan,
-//                         pose_t *pose, float *score) {}
-
 // Compute the gradient of the distance function using finite differences.
 void scan_match_distance_gradient(occupancy_quadtree_t *occupancy, float x,
                                   float y, float *grad_x, float *grad_y) {
@@ -149,8 +117,9 @@ void map_scan_match_gradient(occupancy_quadtree_t *occupancy, scan_t *scan,
   // and d is the distance to the nearest leaf in the quadtree
 
   const int decimate = 2;  // decimate the scan to speed up the computation
+  // nearest points further than 5 leaves away are considered outliers
   const float inlier_distance =
-      0.3f;  // nearest points further than this are ignored
+      5.0f * occupancy->size / powf(2, occupancy->max_depth);
 
   // float tolerance = occupancy->size / powf(2, occupancy->max_depth) * 10.0f;
   // fprintf(stderr, "tolerance: %f\n", tolerance);
@@ -233,7 +202,8 @@ void map_scan_match_gradient(occupancy_quadtree_t *occupancy, scan_t *scan,
 unsigned char map_scan_match(occupancy_quadtree_t *occupancy, scan_t *scan,
                              state_t *prior, pose_t *estimate, float *score,
                              unsigned short iterations) {
-  const float epsilon = 1e-3f;
+  const float epsilon = occupancy->size / powf(2, occupancy->max_depth) *
+                        0.2f;  // convergence threshold
 
   *score = -INFINITY;
 

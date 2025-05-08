@@ -70,7 +70,7 @@ int main() {
   viewer_init(&viewer);
 
   const float map_size = 5.0f;
-  const float map_depth = 9;
+  const float map_depth = 7;
   const float map_leaf_size = map_size / powf(2, map_depth);
 
   occupancy_quadtree_t occ;
@@ -178,13 +178,10 @@ int main() {
         pose_t pose_estimate;
         float score = -INFINITY;
         if (map_scan_match(&occ, &scan, &robot.state, &pose_estimate, &score,
-                           1000)) {
+                           500)) {
           log_info("scan match score: %f", score);
           log_info("scan match pose estimate: %f %f %f", pose_estimate.x,
                    pose_estimate.y, pose_estimate.r);
-          // robot.state.pose.x += 0.07f * (pose_estimate.x - robot.state.pose.x);
-          // robot.state.pose.y += 0.07f * (pose_estimate.y - robot.state.pose.y);
-          // robot.state.pose.r += 0.04f * (pose_estimate.r - robot.state.pose.r);
           robot.state.pose.x = pose_estimate.x;
           robot.state.pose.y = pose_estimate.y;
           robot.state.pose.r = pose_estimate.r;
