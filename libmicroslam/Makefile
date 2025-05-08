@@ -31,7 +31,7 @@ LIB = $(BUILD_DIR)/libmicroslam.a
 TEST = $(BUILD_DIR)/test
 
 # linker flags
-LD_FLAGS = -lm -lglfw -lGL -lGLEW
+LD_FLAGS = -lm -lglfw -lGL
 
 # microslam application target
 APP = $(BUILD_DIR)/microslam
