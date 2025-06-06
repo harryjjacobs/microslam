@@ -3,11 +3,12 @@
 #include <microslam/map.h>
 #include <microslam/microslam_viewer.h>
 #include <microslam/scan.h>
-
-#define PARTICLE_COUNT 2000
+#include <microslam/scan_matching.h>
+#include <microslam/utils.h>
 
 /**
- * @brief Generate a scan inside a roughly square area
+ * @brief Generate a scan inside a roughly square area with some obstacles in
+ * the middle
  *
  * @param gt_scan The ground truth scan to generate
  */
@@ -19,6 +20,14 @@ void generate_gt_scan(scan_t *gt_scan) {
     float dist_y = fabs(square_half_size / sinf(r));
 
     gt_scan->range[i] = fmin(dist_x, dist_y) + 0.15f * sinf(4.0f * r);
+  }
+
+  // add some random obstacles
+  for (size_t i = 0; i < 20; i++) {
+    float r = random_range_uniformf(0, 2 * PI);
+    float dist = random_range_uniformf(0.5f, 1.5f);
+    size_t idx = (size_t)(RAD2DEG(r) + 360) % 360;
+    gt_scan->range[idx] = fmin(gt_scan->range[idx], dist);
   }
 }
 
@@ -84,8 +93,8 @@ int main() {
 
   robot_t robot;
   robot.lidar.max_range = 0.8f;
-  // robot.lidar.range_error = 0.1;
-  // robot.lidar.bearing_error = 0.0;
+  robot.lidar.range_error = 0.0;
+  robot.lidar.bearing_error = 0.0;
 
   robot.state.pose.x = 0.75f;
   robot.state.pose.y = 0;
@@ -99,7 +108,7 @@ int main() {
   // draw ground truth scan
   // viewer_begin_draw(&viewer);
   // viewer_draw_scan(&viewer, &gt_scan, &robot.state.pose, 1, 0, 1);
-  // map_add_scan(&occ, &gt_scan, &robot.state.pose);
+  // map_add_scan(&occ, &gt_scan, &robot.state.pose, 1.0);
   // viewer_draw_occupancy(&viewer, &occ);
   // viewer_end_draw(&viewer);
 
@@ -120,8 +129,8 @@ int main() {
     motion.dx = 0;
     motion.dy = 0;
     motion.dr = 0;
-    motion.error.x = 0.001;
-    motion.error.y = 0.001;
+    motion.error.x = 0.01;
+    motion.error.y = 0.01;
     motion.error.r = 0.005;
 
     microslam_viewer_key key = viewer_getkey(&viewer);
@@ -172,13 +181,13 @@ int main() {
       if (entropy < map_leaf_size * 0.1) {
         log_info("map is empty, skipping scan matching");
         // update the occupancy grid
-        map_add_scan(&occ, &scan, &robot.state.pose);
+        map_add_scan(&occ, &scan, &robot.state.pose, 1.0);
       } else {
         // perform scan matching float score = -INFINITY;
         pose_t pose_estimate;
         float score = -INFINITY;
-        if (map_scan_match(&occ, &scan, &robot.state, &pose_estimate, &score,
-                           500)) {
+        if (scan_match(&occ, &scan, &robot.state, &pose_estimate, &score,
+                       1000)) {
           log_info("scan match score: %f", score);
           log_info("scan match pose estimate: %f %f %f", pose_estimate.x,
                    pose_estimate.y, pose_estimate.r);
@@ -187,7 +196,7 @@ int main() {
           robot.state.pose.r = pose_estimate.r;
 
           // update the occupancy grid
-          map_add_scan(&occ, &scan, &robot.state.pose);
+          map_add_scan(&occ, &scan, &robot.state.pose, score * 10);
         }
       }
 

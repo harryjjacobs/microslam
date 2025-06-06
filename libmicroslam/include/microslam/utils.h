@@ -40,7 +40,7 @@ float rotate(float value, float rotation);
  *
  * @return float
  */
-float random_uniform();
+float random_uniformf();
 
 /**
  * @brief Generate a random integer number in a range using a uniform
@@ -191,6 +191,21 @@ void pose_multiply_inplace_unclamped_rot(pose_t *a, pose_t *b);
 void pose_divide_inplace(pose_t *pose, float divisor);
 
 /**
+ * @brief Check if a point intersects an axis-aligned bounding box (AABB)
+ *
+ * @param aabb_min_x
+ * @param aabb_min_y
+ * @param aabb_max_x
+ * @param aabb_max_y
+ * @param point_x
+ * @param point_y
+ * @return unsigned char
+ */
+unsigned char point_intersects_aabb(float aabb_min_x, float aabb_min_y,
+                                    float aabb_max_x, float aabb_max_y,
+                                    float point_x, float point_y);
+
+/**
  * @brief Check if a ray intersects an axis-aligned bounding box
  *
  * @param aabb_min_x The minimum x coordinate of the AABB
@@ -209,5 +224,22 @@ unsigned char ray_intersects_aabb(float aabb_min_x, float aabb_min_y,
                                   float ray_origin_x, float ray_origin_y,
                                   float ray_direction_x, float ray_direction_y,
                                   float *t_out);
+
+/**
+ * @brief Calculate the Cholesky decomposition of a 3x3 matrix
+ *
+ * @param A
+ * @param L
+ */
+void cholesky_decomp_3x3(float A[3][3], float L[3][3]);
+
+/**
+ * @brief Solve a linear system of equations Ax = b using Cholesky decomposition
+ *
+ * @param A
+ * @param b
+ * @param x
+ */
+void solve_linear_system_3x3(float A[3][3], float b[3], float x[3]);
 
 #endif /* INCLUDE_MICROSLAM_UTILS_H_ */

@@ -1,5 +1,5 @@
 /*
- * microslam.h
+ * map.h
  *
  *  Created on: Mar 5, 2024
  *      Author: harryjjacobs
@@ -18,25 +18,30 @@
  * @param map
  * @param scan
  * @param pose
+ * @param weight How much to weight the scan in the update (log odds scale)
  */
-void map_add_scan(occupancy_quadtree_t *occupancy, scan_t *scan, pose_t *pose);
+void map_add_scan(occupancy_quadtree_t *occupancy, scan_t *scan, pose_t *pose,
+                  float weight);
 
 /**
- * @brief Compute the score of a scan at a given pose
+ * @brief Perform scan matching using levenberg-marquardt to find the best pose
+ * for the scan
  *
  * @param occupancy
  * @param scan
- * @param pose
+ * @param prior
+ * @param estimate
  * @param score
+ * @param iterations
+ * @return unsigned char 1 if converged, 0 otherwise
  */
-void compute_scan_score(occupancy_quadtree_t *occupancy, scan_t *scan,
-                        pose_t *pose, float *score);
-
-void map_scan_match_gradient(occupancy_quadtree_t *occupancy, scan_t *scan,
-                             pose_t *pose, pose_t *gradient, float *score);
+unsigned short map_scan_match_lm(occupancy_quadtree_t *occupancy, scan_t *scan,
+                                 state_t *prior, pose_t *estimate, float *score,
+                                 unsigned short iterations);
 
 /**
- * @brief Perform scan matching to find the best pose for the scan
+ * @brief Perform scan matching using gradient descent to find the best pose for
+ * the scan
  *
  * @param occupancy
  * @param scan

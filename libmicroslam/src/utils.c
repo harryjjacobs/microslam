@@ -21,7 +21,7 @@ float rotate(float value, float rotation) {
   return clamp_rotation(value);
 }
 
-float random_uniform() { return (float)rand() / RAND_MAX; }
+float random_uniformf() { return (float)rand() / RAND_MAX; }
 
 int random_range_uniform(int min, int max) {
   assert(max >= min);
@@ -32,7 +32,7 @@ int random_range_uniform(int min, int max) {
 float random_range_uniformf(float min, float max) {
   assert(max >= min);
   float range = max - min;
-  return min + random_uniform() * range;
+  return min + random_uniformf() * range;
 }
 
 /**
@@ -47,8 +47,8 @@ float random_range_uniformf(float min, float max) {
  * @return float
  */
 float random_normalf(float mean, float stddev) {
-  float u1 = random_uniform();
-  float u2 = random_uniform();
+  float u1 = random_uniformf();
+  float u2 = random_uniformf();
   float r = sqrtf(-2 * log(u1)) * stddev;
   float theta = 2 * PI * u2;
   return r * cosf(theta) + mean;
@@ -162,6 +162,13 @@ void pose_divide_inplace(pose_t *pose, float divisor) {
   pose->r /= divisor;
 }
 
+unsigned char point_intersects_aabb(float aabb_min_x, float aabb_min_y,
+                                    float aabb_max_x, float aabb_max_y,
+                                    float point_x, float point_y) {
+  return (point_x >= aabb_min_x && point_x <= aabb_max_x &&
+          point_y >= aabb_min_y && point_y <= aabb_max_y);
+}
+
 unsigned char ray_intersects_aabb(float aabb_min_x, float aabb_min_y,
                                   float aabb_max_x, float aabb_max_y,
                                   float ray_origin_x, float ray_origin_y,
@@ -181,4 +188,46 @@ unsigned char ray_intersects_aabb(float aabb_min_x, float aabb_min_y,
   *t_out = (tmin >= 0) ? tmin : tmax;
 
   return 1;
+}
+
+void cholesky_decomp_3x3(float A[3][3], float L[3][3]) {
+  // Cholesky decomposition for a 3x3 matrix A
+  // A = L * L^T, where L is a lower triangular matrix
+  // https://en.wikipedia.org/wiki/Cholesky_decomposition#The_Cholesky%E2%80%93Banachiewicz_and_Cholesky%E2%80%93Crout_algorithms
+
+  L[0][0] = sqrtf(A[0][0]);
+  L[1][0] = A[1][0] / L[0][0];
+  L[1][1] = sqrtf(A[1][1] - L[1][0] * L[1][0]);
+  L[2][0] = A[2][0] / L[0][0];
+  L[2][1] = (A[2][1] - L[2][0] * L[1][0]) / L[1][1];
+  L[2][2] = sqrtf(A[2][2] - L[2][0] * L[2][0] - L[2][1] * L[2][1]);
+}
+
+void solve_linear_system_3x3(float A[3][3], float b[3], float x[3]) {
+  // solve A x = -b using cholesky decomposition
+  // A is a 3x3 matrix, b is a 3x1 vector, x is the solution vector
+
+  // A = L L^T, where L is a lower triangular matrix
+  float L[3][3];
+  cholesky_decomp_3x3(A, L);
+
+  // forward substitution to solve L y = -b
+  // https://en.wikipedia.org/wiki/Triangular_matrix#Forward_substitution
+  float y[3];
+  for (int i = 0; i < 3; i++) {
+    y[i] = -b[i];
+    for (int j = 0; j < i; j++) {
+      y[i] -= L[i][j] * y[j];
+    }
+    y[i] /= L[i][i];
+  }
+
+  // backward substitution to solve L^T x = y
+  for (int i = 2; i >= 0; i--) {
+    x[i] = y[i];
+    for (int j = i + 1; j < 3; j++) {
+      x[i] -= L[j][i] * x[j];
+    }
+    x[i] /= L[i][i];
+  }
 }
