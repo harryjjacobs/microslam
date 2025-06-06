@@ -1,3 +1,4 @@
+#include <log/log.h>
 #include <microslam/occupancy_quadtree.h>
 #include <unity/unity.h>
 
@@ -26,8 +27,8 @@ void test_occupancy_quadtree_update() {
   TEST_ASSERT_EQUAL_INT(OCCUPANCY_MIXED, quadtree.occupancy);
   TEST_ASSERT_TRUE(quadtree.children[0] != NULL);
   TEST_ASSERT_EQUAL_INT(OCCUPANCY_OCCUPIED, quadtree.children[0]->occupancy);
-  TEST_ASSERT_EQUAL_DOUBLE(0.5, quadtree.children[0]->size);
-  TEST_ASSERT_EQUAL_DOUBLE(1.0, quadtree.children[0]->log_odds);
+  TEST_ASSERT_EQUAL_FLOAT(0.5, quadtree.children[0]->size);
+  TEST_ASSERT_EQUAL_FLOAT(1.0, quadtree.children[0]->log_odds);
   TEST_ASSERT_TRUE(quadtree.children[1] == NULL);
   TEST_ASSERT_TRUE(quadtree.children[2] == NULL);
   TEST_ASSERT_TRUE(quadtree.children[3] == NULL);
@@ -50,19 +51,19 @@ void test_occupancy_quadtree_update_multiple() {
   TEST_ASSERT_EQUAL_INT(OCCUPANCY_MIXED, quadtree.occupancy);
   TEST_ASSERT_TRUE(quadtree.children[0] != NULL);
   TEST_ASSERT_EQUAL_INT(OCCUPANCY_OCCUPIED, quadtree.children[0]->occupancy);
-  TEST_ASSERT_EQUAL_DOUBLE(1.0, quadtree.children[0]->log_odds);
+  TEST_ASSERT_EQUAL_FLOAT(1.0, quadtree.children[0]->log_odds);
 
   occupancy_quadtree_update(&quadtree, 0.2, -0.2, 2);  // log odds = 2
   TEST_ASSERT_EQUAL_INT(OCCUPANCY_MIXED, quadtree.occupancy);
   TEST_ASSERT_TRUE(quadtree.children[1] != NULL);
   TEST_ASSERT_EQUAL_INT(OCCUPANCY_OCCUPIED, quadtree.children[1]->occupancy);
-  TEST_ASSERT_EQUAL_DOUBLE(2.0, quadtree.children[1]->log_odds);
+  TEST_ASSERT_EQUAL_FLOAT(2.0, quadtree.children[1]->log_odds);
 
   occupancy_quadtree_update(&quadtree, -0.2, 0.2, 1);  // log odds = 1
   TEST_ASSERT_EQUAL_INT(OCCUPANCY_MIXED, quadtree.occupancy);
   TEST_ASSERT_TRUE(quadtree.children[2] != NULL);
   TEST_ASSERT_EQUAL_INT(OCCUPANCY_OCCUPIED, quadtree.children[2]->occupancy);
-  TEST_ASSERT_EQUAL_DOUBLE(1.0, quadtree.children[2]->log_odds);
+  TEST_ASSERT_EQUAL_FLOAT(1.0, quadtree.children[2]->log_odds);
 
   occupancy_quadtree_update(&quadtree, 0.2, 0.2, -1);  // log odds = -1
   TEST_ASSERT_EQUAL_INT(OCCUPANCY_MIXED, quadtree.occupancy);
@@ -83,10 +84,10 @@ void test_occupancy_quadtree_update_depth_2() {
   TEST_ASSERT_TRUE(quadtree.children[0]->children[0] != NULL);
   TEST_ASSERT_EQUAL_INT(OCCUPANCY_OCCUPIED,
                         quadtree.children[0]->children[0]->occupancy);
-  TEST_ASSERT_EQUAL_DOUBLE(1.0, quadtree.children[0]->children[0]->log_odds);
-  TEST_ASSERT_EQUAL_DOUBLE(8, quadtree.children[0]->size);
-  TEST_ASSERT_EQUAL_DOUBLE(-4, quadtree.children[0]->x);
-  TEST_ASSERT_EQUAL_DOUBLE(4, quadtree.children[0]->children[0]->size);
+  TEST_ASSERT_EQUAL_FLOAT(1.0, quadtree.children[0]->children[0]->log_odds);
+  TEST_ASSERT_EQUAL_FLOAT(8, quadtree.children[0]->size);
+  TEST_ASSERT_EQUAL_FLOAT(-4, quadtree.children[0]->x);
+  TEST_ASSERT_EQUAL_FLOAT(4, quadtree.children[0]->children[0]->size);
 
   TEST_ASSERT_TRUE(quadtree.children[0]->children[1] == NULL);
   TEST_ASSERT_TRUE(quadtree.children[0]->children[2] == NULL);
@@ -111,10 +112,10 @@ void test_occupancy_quadtree_update_depth_3() {
   TEST_ASSERT_TRUE(quadtree.children[2] == NULL);
   TEST_ASSERT_TRUE(quadtree.children[3] != NULL);
   TEST_ASSERT_EQUAL_INT(OCCUPANCY_MIXED, quadtree.children[3]->occupancy);
-  TEST_ASSERT_EQUAL_DOUBLE(256, quadtree.children[3]->size);
-  TEST_ASSERT_EQUAL_DOUBLE(128, quadtree.children[3]->x);
-  TEST_ASSERT_EQUAL_DOUBLE(128, quadtree.children[3]->y);
-  TEST_ASSERT_EQUAL_DOUBLE(0, quadtree.children[3]->log_odds);
+  TEST_ASSERT_EQUAL_FLOAT(256, quadtree.children[3]->size);
+  TEST_ASSERT_EQUAL_FLOAT(128, quadtree.children[3]->x);
+  TEST_ASSERT_EQUAL_FLOAT(128, quadtree.children[3]->y);
+  TEST_ASSERT_EQUAL_FLOAT(0, quadtree.children[3]->log_odds);
 
   // depth 2
   TEST_ASSERT_TRUE(quadtree.children[3]->children[0] == NULL);
@@ -123,10 +124,10 @@ void test_occupancy_quadtree_update_depth_3() {
   TEST_ASSERT_TRUE(quadtree.children[3]->children[3] != NULL);
   TEST_ASSERT_EQUAL_INT(OCCUPANCY_MIXED,
                         quadtree.children[3]->children[3]->occupancy);
-  TEST_ASSERT_EQUAL_DOUBLE(128, quadtree.children[3]->children[3]->size);
-  TEST_ASSERT_EQUAL_DOUBLE(192, quadtree.children[3]->children[3]->x);
-  TEST_ASSERT_EQUAL_DOUBLE(192, quadtree.children[3]->children[3]->y);
-  TEST_ASSERT_EQUAL_DOUBLE(0, quadtree.children[3]->children[3]->log_odds);
+  TEST_ASSERT_EQUAL_FLOAT(128, quadtree.children[3]->children[3]->size);
+  TEST_ASSERT_EQUAL_FLOAT(192, quadtree.children[3]->children[3]->x);
+  TEST_ASSERT_EQUAL_FLOAT(192, quadtree.children[3]->children[3]->y);
+  TEST_ASSERT_EQUAL_FLOAT(0, quadtree.children[3]->children[3]->log_odds);
 
   // depth 3
   TEST_ASSERT_TRUE(quadtree.children[3]->children[3]->children[0] == NULL);
@@ -136,13 +137,13 @@ void test_occupancy_quadtree_update_depth_3() {
   TEST_ASSERT_EQUAL_INT(
       OCCUPANCY_OCCUPIED,
       quadtree.children[3]->children[3]->children[3]->occupancy);
-  TEST_ASSERT_EQUAL_DOUBLE(
-      64, quadtree.children[3]->children[3]->children[3]->size);
-  TEST_ASSERT_EQUAL_DOUBLE(224,
-                           quadtree.children[3]->children[3]->children[3]->x);
-  TEST_ASSERT_EQUAL_DOUBLE(224,
-                           quadtree.children[3]->children[3]->children[3]->y);
-  TEST_ASSERT_EQUAL_DOUBLE(
+  TEST_ASSERT_EQUAL_FLOAT(64,
+                          quadtree.children[3]->children[3]->children[3]->size);
+  TEST_ASSERT_EQUAL_FLOAT(224,
+                          quadtree.children[3]->children[3]->children[3]->x);
+  TEST_ASSERT_EQUAL_FLOAT(224,
+                          quadtree.children[3]->children[3]->children[3]->y);
+  TEST_ASSERT_EQUAL_FLOAT(
       1, quadtree.children[3]->children[3]->children[3]->log_odds);
 }
 
@@ -200,9 +201,8 @@ void test_occupancy_quadtree_nearest() {
   TEST_ASSERT_EQUAL_FLOAT(-24, node->x);
   TEST_ASSERT_EQUAL_FLOAT(-24, node->y);
   TEST_ASSERT_EQUAL_FLOAT(16, node->size);
-  TEST_ASSERT_EQUAL_FLOAT(
-      sqrtf((-24 + 8 - 1) * (-24 + 8 - 1) + (-24 + 8 - 1) * (-24 + 8 - 1)),
-      distance);
+  TEST_ASSERT_EQUAL_FLOAT(sqrtf((-24 - 1) * (-24 - 1) + (-24 - 1) * (-24 - 1)),
+                          distance);
 
   node = occupancy_quadtree_nearest(&quadtree, -16, -16, &distance);
   TEST_ASSERT_TRUE(node != NULL);
@@ -210,24 +210,22 @@ void test_occupancy_quadtree_nearest() {
   TEST_ASSERT_EQUAL_FLOAT(-24, node->y);
   TEST_ASSERT_EQUAL_FLOAT(16, node->size);
   TEST_ASSERT_EQUAL_FLOAT(
-      sqrtf((-24 + 8 + 16) * (-24 + 8 + 16) + (-24 + 8 + 16) * (-24 + 8 + 16)),
-      distance);
+      sqrtf((-24 + 16) * (-24 + 16) + (-24 + 16) * (-24 + 16)), distance);
 
   node = occupancy_quadtree_nearest(&quadtree, 0, 0, &distance);
   TEST_ASSERT_TRUE(node != NULL);
   TEST_ASSERT_EQUAL_FLOAT(-24, node->x);
   TEST_ASSERT_EQUAL_FLOAT(-24, node->y);
   TEST_ASSERT_EQUAL_FLOAT(16, node->size);
-  TEST_ASSERT_EQUAL_FLOAT(sqrtf((-24 + 8) * (-24 + 8) + (-24 + 8) * (-24 + 8)),
-                          distance);
+  TEST_ASSERT_EQUAL_FLOAT(sqrtf((-24) * (-24) + (-24) * (-24)), distance);
 
   node = occupancy_quadtree_nearest(&quadtree, 600, 600, &distance);
   TEST_ASSERT_TRUE(node != NULL);
-  TEST_ASSERT_EQUAL_FLOAT(256 - 8, node->x);
-  TEST_ASSERT_EQUAL_FLOAT(256 - 8, node->y);
+  TEST_ASSERT_EQUAL_FLOAT(248, node->x);
+  TEST_ASSERT_EQUAL_FLOAT(248, node->y);
   TEST_ASSERT_EQUAL_FLOAT(16, node->size);
   TEST_ASSERT_EQUAL_FLOAT(
-      sqrtf((256 - 600) * (256 - 600) + (256 - 600) * (256 - 600)), distance);
+      sqrtf((248 - 600) * (248 - 600) + (248 - 600) * (248 - 600)), distance);
 }
 
 void test_occupancy_quadtree_raycast() {
@@ -271,4 +269,25 @@ void test_occupancy_quadtree_raycast() {
                           distance);
 
   occupancy_quadtree_clear(&quadtree);
+}
+
+void setUp(void) {}
+void tearDown(void) {}
+
+int main(void) {
+  log_set_level(LOG_INFO);
+
+  UNITY_BEGIN();
+
+  RUN_TEST(test_occupancy_quadtree_init);
+  RUN_TEST(test_occupancy_quadtree_update);
+  RUN_TEST(test_occupancy_quadtree_update_multiple);
+  RUN_TEST(test_occupancy_quadtree_update_depth_2);
+  RUN_TEST(test_occupancy_quadtree_update_depth_3);
+  RUN_TEST(test_occupancy_quadtree_find);
+  RUN_TEST(test_occupancy_quadtree_nearest);
+  RUN_TEST(test_occupancy_quadtree_raycast);
+
+  UNITY_END();
+  return 0;
 }

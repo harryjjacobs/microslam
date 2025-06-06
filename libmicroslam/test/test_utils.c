@@ -1,4 +1,4 @@
-#include <microslam/particle_filter.h>
+#include <log/log.h>
 #include <microslam/utils.h>
 #include <unity/unity.h>
 
@@ -28,7 +28,7 @@ void test_calc_bearing_to_point(void) {
 
 void test_random_range_uniform() {
   for (int i = 0; i < 1000; i++) {
-    TEST_ASSERT_INT_WITHIN(0.5, 0.5, random_uniform());
+    TEST_ASSERT_INT_WITHIN(0.5, 0.5, random_uniformf());
   }
 }
 
@@ -118,4 +118,45 @@ void test_ray_intersects_aabb_no_intersection() {
   float t;
   result = ray_intersects_aabb(-1, -1, 1, 1, 2, 2, 3, 3, &t);
   TEST_ASSERT_EQUAL_INT(0, result);
+}
+
+void test_cholesky_decomp_3x3() {
+  float A[3][3] = {
+      {4, 12, -16},
+      {12, 37, -43},
+      {-16, -43, 98},
+  };
+  float L[3][3] = {0};
+
+  cholesky_decomp_3x3(A, L);
+
+  TEST_ASSERT_FLOAT_WITHIN(FLOAT_EPSILON, 2.0f, L[0][0]);
+  TEST_ASSERT_FLOAT_WITHIN(FLOAT_EPSILON, 6.0f, L[1][0]);
+  TEST_ASSERT_FLOAT_WITHIN(FLOAT_EPSILON, -8.0f, L[2][0]);
+  TEST_ASSERT_FLOAT_WITHIN(FLOAT_EPSILON, 0.0f, L[0][1]);
+  TEST_ASSERT_FLOAT_WITHIN(FLOAT_EPSILON, 1.0f, L[1][1]);
+  TEST_ASSERT_FLOAT_WITHIN(FLOAT_EPSILON, 5.0f, L[2][1]);
+  TEST_ASSERT_FLOAT_WITHIN(FLOAT_EPSILON, 0.0f, L[0][2]);
+  TEST_ASSERT_FLOAT_WITHIN(FLOAT_EPSILON, 0.0f, L[1][2]);
+  TEST_ASSERT_FLOAT_WITHIN(FLOAT_EPSILON, 3.0f, L[2][2]);
+}
+
+void setUp(void) {}
+void tearDown(void) {}
+
+int main(void) {
+  log_set_level(LOG_INFO);
+
+  UNITY_BEGIN();
+
+  RUN_TEST(test_calc_bearing_to_point);
+  RUN_TEST(test_random_range_uniform);
+  RUN_TEST(test_random_range_normalf);
+  RUN_TEST(test_random_range_normal);
+  RUN_TEST(test_normal_pdf);
+  RUN_TEST(test_pose_distance);
+  RUN_TEST(test_cholesky_decomp_3x3);
+
+  UNITY_END();
+  return 0;
 }
