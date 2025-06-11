@@ -53,7 +53,7 @@ all: $(APP)
 
 # Main app
 $(APP): $(LIB) $(BUILD_DIR)/main.o
-	$(CC) $(CFLAGS) -o $@ $^ $(LD_FLAGS)
+	$(CC) $(CFLAGS) -o $@ $^ $(LIB) $(LD_FLAGS)
 
 # Static library
 $(LIB): $(OBJ) $(BUILD_DIR)/log.o $(INCLUDE_DIR)/microslam/*.h
