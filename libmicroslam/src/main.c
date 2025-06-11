@@ -129,9 +129,9 @@ int main() {
     motion.dx = 0;
     motion.dy = 0;
     motion.dr = 0;
-    motion.error.x = 0.01;
-    motion.error.y = 0.01;
-    motion.error.r = 0.005;
+    motion.error.x = 0.1;
+    motion.error.y = 0.1;
+    motion.error.r = 0.05;
 
     microslam_viewer_key key = viewer_getkey(&viewer);
     switch (key) {
@@ -139,26 +139,26 @@ int main() {
         motion.dx = linear_speed * cos(gt_state.pose.r);
         motion.dy = linear_speed * sin(gt_state.pose.r);
 
-        gt_motion.dx = (linear_speed + random_normalf(0, motion.error.x)) *
+        gt_motion.dx = linear_speed * (1 + random_normalf(0, motion.error.x)) *
                        cos(gt_state.pose.r);
-        gt_motion.dy = (linear_speed + random_normalf(0, motion.error.y)) *
+        gt_motion.dy = linear_speed * (1 + random_normalf(0, motion.error.y)) *
                        sin(gt_state.pose.r);
         break;
       case microslam_viewer_key_down:
         motion.dx = -linear_speed * cos(gt_state.pose.r);
         motion.dy = -linear_speed * sin(gt_state.pose.r);
-        gt_motion.dx = (-linear_speed + random_normalf(0, motion.error.x)) *
+        gt_motion.dx = linear_speed * (-1 + random_normalf(0, motion.error.x)) *
                        cos(gt_state.pose.r);
-        gt_motion.dy = (-linear_speed + random_normalf(0, motion.error.y)) *
+        gt_motion.dy = linear_speed * (-1 + random_normalf(0, motion.error.y)) *
                        sin(gt_state.pose.r);
         break;
       case microslam_viewer_key_left:
         motion.dr = angular_speed;
-        gt_motion.dr = angular_speed + random_normalf(0, motion.error.r);
+        gt_motion.dr = angular_speed * (1 + random_normalf(0, motion.error.r));
         break;
       case microslam_viewer_key_right:
         motion.dr = -angular_speed;
-        gt_motion.dr = -angular_speed + random_normalf(0, motion.error.r);
+        gt_motion.dr = -angular_speed * (1 + random_normalf(0, motion.error.r));
         break;
       default:
         break;
@@ -185,9 +185,9 @@ int main() {
       } else {
         // perform scan matching float score = -INFINITY;
         pose_t pose_estimate;
-        float score = -INFINITY;
-        if (scan_match(&occ, &scan, &robot.state, &pose_estimate, &score,
-                       1000)) {
+        float score = INFINITY;
+        if (scan_matching_match(&occ, &scan, &robot.state.pose, &pose_estimate,
+                                &score, 1000)) {
           log_info("scan match score: %f", score);
           log_info("scan match pose estimate: %f %f %f", pose_estimate.x,
                    pose_estimate.y, pose_estimate.r);

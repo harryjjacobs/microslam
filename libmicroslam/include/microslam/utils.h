@@ -242,4 +242,14 @@ void cholesky_decomp_3x3(float A[3][3], float L[3][3]);
  */
 void solve_linear_system_3x3(float A[3][3], float b[3], float x[3]);
 
+/**
+ * @brief Calculate the Huber weight for a given distance and delta.
+ * Behaves quadratically for small distances and linearly for large ones.
+ *
+ * @param d
+ * @param delta
+ * @return float
+ */
+float huber_weight(float d, float delta);
+
 #endif /* INCLUDE_MICROSLAM_UTILS_H_ */

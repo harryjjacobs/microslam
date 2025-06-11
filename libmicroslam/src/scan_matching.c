@@ -82,7 +82,6 @@ void scan_matching_gradient(occupancy_quadtree_t *occupancy, scan_t *scan,
     float distance;
     occupancy_quadtree_t *leaf =
         occupancy_quadtree_nearest(occupancy, x, y, &distance);
-    // fprintf(stderr, "distance: %f\n", distance);
     if (leaf != NULL) {  //  && distance < inlier_distance
       // calculate the partial derivatives of the transformed x and y, w.r.t.
       // theta
@@ -92,13 +91,16 @@ void scan_matching_gradient(occupancy_quadtree_t *occupancy, scan_t *scan,
       dy_dtheta = scan->range[i] * cos_r;
       // calculate the gradient of the distance function w.r.t. x and y
       scan_matching_distance_gradient(occupancy, x, y, &dd_dx, &dd_dy);
+      // printf("dd_dx: %.9g, dd_dy: %.9g\n", dd_dx, dd_dy);
       // calculate the partial derivative of the distance function w.r.t. theta
       // dd/dθ = (dd/dx * dx/dθ + dd/dy * dy/dθ)
       dd_dtheta = (dd_dx * dx_dtheta + dd_dy * dy_dtheta);
-      gradient->x += distance * dd_dx;
-      gradient->y += distance * dd_dy;
-      gradient->r += distance * dd_dtheta;
-      *sum += distance * distance;
+      float w = huber_weight(distance, inlier_distance);
+      // float w = 1.0f;
+      gradient->x -= w * distance * dd_dx;
+      gradient->y -= w * distance * dd_dy;
+      gradient->r -= w * distance * dd_dtheta;
+      *sum += w * distance * distance;
       hits++;
     }
   }
@@ -113,9 +115,10 @@ void scan_matching_gradient(occupancy_quadtree_t *occupancy, scan_t *scan,
   gradient->r /= (float)hits;
 }
 
-unsigned short scan_match_lm(occupancy_quadtree_t *occupancy, scan_t *scan,
-                             state_t *prior, pose_t *estimate, float *cost,
-                             unsigned short iterations) {
+unsigned short scan_matching_match_lm(occupancy_quadtree_t *occupancy,
+                                      scan_t *scan, pose_t *prior,
+                                      pose_t *estimate, float *cost,
+                                      unsigned short iterations) {
   const int decimate = 1;
   const float convergence_epsilon = 1e-10;
   const float inlier_distance = MICROSLAM_SCAN_MATCHING_INLIER_DISTANCE_COUNT *
@@ -125,7 +128,7 @@ unsigned short scan_match_lm(occupancy_quadtree_t *occupancy, scan_t *scan,
   const float lambda_down = 0.1f;
 
   float lambda = initial_lambda;
-  *estimate = prior->pose;
+  *estimate = *prior;
 
   for (int iter = 0; iter < iterations; iter++) {
     *cost = 0.0f;
@@ -158,12 +161,7 @@ unsigned short scan_match_lm(occupancy_quadtree_t *occupancy, scan_t *scan,
       float J[3] = {ddx, ddy, ddx * dx_dtheta + ddy * dy_dtheta};
 
       // huber loss
-      float huber_k = inlier_distance;
-      float w = 1.0f;
-      // if (distance > huber_k) {
-      //   w = huber_k / distance;  // reduces influence of large residuals
-      // }
-
+      float w = huber_weight(distance, inlier_distance);
       for (int m = 0; m < 3; ++m) {
         b[m] += w * distance * J[m];
         for (int n = 0; n < 3; ++n) {
@@ -247,9 +245,9 @@ unsigned short scan_match_lm(occupancy_quadtree_t *occupancy, scan_t *scan,
   return 0;
 }
 
-unsigned char scan_match(occupancy_quadtree_t *occupancy, scan_t *scan,
-                         state_t *prior, pose_t *estimate, float *score,
-                         unsigned short iterations) {
+unsigned char scan_matching_match(occupancy_quadtree_t *occupancy, scan_t *scan,
+                                  pose_t *prior, pose_t *estimate, float *score,
+                                  unsigned short iterations) {
   // convergence threshold
   const float epsilon =
       powf(MICROSLAM_SCAN_MATCHING_CONVERGENCE_EPSILON_FACTOR *
@@ -258,13 +256,13 @@ unsigned char scan_match(occupancy_quadtree_t *occupancy, scan_t *scan,
 
   printf("convergence epsilon: %.9g\n", epsilon);
 
-  *score = -INFINITY;
+  *score = INFINITY;
 
   // gradient descent
-  float step_size = 0.001f;
+  float step_size = 1.0f;
   float current_score;
-  pose_t current_estimate = prior->pose;
-  pose_t last_update = prior->pose;
+  pose_t current_estimate = *prior;
+  pose_t last_update = *prior;
   pose_t gradient = {0, 0, 0};
 
   unsigned short i = 0;
@@ -272,46 +270,51 @@ unsigned char scan_match(occupancy_quadtree_t *occupancy, scan_t *scan,
     scan_matching_gradient(occupancy, scan, &current_estimate, &gradient,
                            &current_score);
 
-    printf("gradient: %f %f %f\n", gradient.x, gradient.y, gradient.r);
+    printf("iteration %d: current score: %.9g, best score: %.9g\n", i,
+           current_score, *score);
+
+    // printf("gradient: %f %f %f\n", gradient.x, gradient.y, gradient.r);
 
     // if the score is better than the best score,
     // update the best score
-    if (current_score > *score) {
+    if (current_score < *score) {
+      printf("  current estimate: %.9g %.9g %.9g\n", current_estimate.x,
+             current_estimate.y, current_estimate.r);
+      printf("  gradient: %.9g %.9g %.9g\n", gradient.x, gradient.y,
+             gradient.r);
       *score = current_score;
       *estimate = current_estimate;
       last_update = current_estimate;
     }
 
     // update the estimate using the gradient
-    current_estimate.x -= step_size * gradient.x;
-    current_estimate.y -= step_size * gradient.y;
-    current_estimate.r -= 0.1f * step_size * gradient.r;
+    current_estimate.x += step_size * gradient.x;
+    current_estimate.y += step_size * gradient.y;
+    current_estimate.r += step_size * gradient.r;
 
     float grad_norm = gradient.x * gradient.x + gradient.y * gradient.y +
                       gradient.r * gradient.r;
     if (grad_norm < epsilon) {
-      break;
+      printf("converged in %d iterations:\n", (i + 1));
+
+      printf("  final estimate: %.9g %.9g %.9g\n", current_estimate.x,
+             current_estimate.y, current_estimate.r);
+
+      printf("  diff: %.9g %.9g %.9g\n",
+             fabsf(current_estimate.x - last_update.x),
+             fabsf(current_estimate.y - last_update.y),
+             fabsf(current_estimate.r - last_update.r));
+
+      printf("  gradient: %.9g %.9g %.9g\n", gradient.x, gradient.y,
+             gradient.r);
+
+      printf("  gradient norm: %.9g\n", gradient.x * gradient.x +
+                                            gradient.y * gradient.y +
+                                            gradient.r * gradient.r);
+      return 1;
     }
   }
 
-  printf("final estimate: %.9g %.9g %.9g\n", current_estimate.x,
-         current_estimate.y, current_estimate.r);
-
-  printf("diff: %.9g %.9g %.9g\n", fabsf(current_estimate.x - last_update.x),
-         fabsf(current_estimate.y - last_update.y),
-         fabsf(current_estimate.r - last_update.r));
-
-  printf("gradient: %.9g %.9g %.9g\n", gradient.x, gradient.y, gradient.r);
-
-  printf("gradient norm: %.9g\n",
-         sqrtf(gradient.x * gradient.x + gradient.y * gradient.y +
-               gradient.r * gradient.r));
-
-  if (i == iterations || *score < 0) {
-    printf("did not converge\n");
-    return 0;
-  } else {
-    printf("converged in %d iterations\n", i);
-    return 1;
-  }
+  printf("did not converge\n");
+  return 0;
 }

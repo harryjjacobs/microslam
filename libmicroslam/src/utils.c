@@ -231,3 +231,10 @@ void solve_linear_system_3x3(float A[3][3], float b[3], float x[3]) {
     x[i] /= L[i][i];
   }
 }
+
+float huber_weight(float d, float delta) {
+  if (fabsf(d) <= delta)
+    return 1.0f;  // full weight in quadratic region
+  else
+    return delta / fabsf(d);  // down-weight large errors
+}
