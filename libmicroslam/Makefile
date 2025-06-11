@@ -65,10 +65,6 @@ $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
 	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) -I$(THIRDPARTY_DIR) -c -o $@ $<
 
-$(BUILD_DIR)/main.o: $(SRC_DIR)/main.c
-	@mkdir -p $(@D)
-	$(CC) $(CFLAGS) -c -o $@ $<
-
 $(BUILD_DIR)/log.o: $(LOG)
 	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) -c -o $@ $<
@@ -89,6 +85,12 @@ test: $(TEST_BINS)
 $(BUILD_DIR)/test/%: $(TEST_DIR)/%.c $(BUILD_DIR)/unity.o $(LIB)
 	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) -I$(THIRDPARTY_DIR) -o $@ $< $(BUILD_DIR)/unity.o $(LIB) $(LD_FLAGS)
+
+
+.PHONY: test/%
+test/%: $(BUILD_DIR)/test/%
+	@echo "Running $<..."
+	@$<
 
 # ==== Clean ====
 
