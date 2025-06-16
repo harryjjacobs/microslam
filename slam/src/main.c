@@ -59,9 +59,9 @@ void generate_noisy_scan(scan_t *gt_scan, scan_t *scan, pose_t *pose,
 
     // add noise to the range
     if (dist > max_range) {
-      scan->range[scan_idx] = 0;
+      scan_add(scan, scan_idx, 0.0f);
     } else {
-      scan->range[scan_idx] = dist + random_normalf(0, scan->range_error);
+      scan_add(scan, scan_idx, dist + random_normalf(0, scan->range_error));
     }
   }
 }
@@ -129,8 +129,8 @@ int main() {
     motion.dx = 0;
     motion.dy = 0;
     motion.dr = 0;
-    motion.error.x = 0.1;
-    motion.error.y = 0.1;
+    motion.error.x = 0.2;
+    motion.error.y = 0.2;
     motion.error.r = 0.05;
 
     microslam_viewer_key key = viewer_getkey(&viewer);
@@ -182,7 +182,7 @@ int main() {
         log_info("map is empty, skipping scan matching");
         // update the occupancy grid
         map_add_scan(&occ, &scan, &robot.state.pose, 1.0);
-      } else {
+      } else if (scan.hits > 30) {
         // perform scan matching float score = -INFINITY;
         pose_t pose_estimate;
         float score = INFINITY;

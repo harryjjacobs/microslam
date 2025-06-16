@@ -36,8 +36,10 @@ fail:
   *grad_y = 0;
 }
 
-void scan_matching_gradient(occupancy_quadtree_t *occupancy, scan_t *scan,
-                            pose_t *pose, pose_t *gradient, float *sum) {
+unsigned short scan_matching_gradient(occupancy_quadtree_t *occupancy,
+                                      scan_t *scan, pose_t *pose,
+                                      float min_matches, pose_t *gradient,
+                                      float *sum) {
   // the cost function is the sum of the squared distances to the nearest leaf:
   // E(p)=∑_i(d(T_p(s_i)))2
   // for pose p and scan s, where T_p(s_i) is the transformed scan point s_i
@@ -58,7 +60,7 @@ void scan_matching_gradient(occupancy_quadtree_t *occupancy, scan_t *scan,
   // partial derivative of the distance function w.r.t. theta
   float dd_dtheta;
 
-  int hits = 0;
+  int matches = 0;
 
   gradient->x = 0;
   gradient->y = 0;
@@ -82,7 +84,7 @@ void scan_matching_gradient(occupancy_quadtree_t *occupancy, scan_t *scan,
     float distance;
     occupancy_quadtree_t *leaf =
         occupancy_quadtree_nearest(occupancy, x, y, &distance);
-    if (leaf != NULL) {  //  && distance < inlier_distance
+    if (leaf != NULL && distance < inlier_distance) {
       // calculate the partial derivatives of the transformed x and y, w.r.t.
       // theta
       // x​=x+r.​cos(θ+ϕi​) => dx/dθ = -r.​sin(θ+ϕi​)
@@ -101,18 +103,20 @@ void scan_matching_gradient(occupancy_quadtree_t *occupancy, scan_t *scan,
       gradient->y -= w * distance * dd_dy;
       gradient->r -= w * distance * dd_dtheta;
       *sum += w * distance * distance;
-      hits++;
+      matches++;
     }
   }
 
-  if (hits == 0) {
-    *sum = -INFINITY;
-    return;
+  if (matches < min_matches) {
+    *sum = INFINITY;
+    return 0;
   }
 
-  gradient->x /= (float)hits;
-  gradient->y /= (float)hits;
-  gradient->r /= (float)hits;
+  gradient->x /= (float)matches;
+  gradient->y /= (float)matches;
+  gradient->r /= (float)matches;
+
+  return 1;
 }
 
 unsigned short scan_matching_match_lm(occupancy_quadtree_t *occupancy,
@@ -160,7 +164,6 @@ unsigned short scan_matching_match_lm(occupancy_quadtree_t *occupancy,
 
       float J[3] = {ddx, ddy, ddx * dx_dtheta + ddy * dy_dtheta};
 
-      // huber loss
       float w = huber_weight(distance, inlier_distance);
       for (int m = 0; m < 3; ++m) {
         b[m] += w * distance * J[m];
@@ -267,8 +270,11 @@ unsigned char scan_matching_match(occupancy_quadtree_t *occupancy, scan_t *scan,
 
   unsigned short i = 0;
   for (; i < iterations; i++) {
-    scan_matching_gradient(occupancy, scan, &current_estimate, &gradient,
-                           &current_score);
+    if (!scan_matching_gradient(occupancy, scan, &current_estimate, 20,
+                                &gradient, &current_score)) {
+      printf("scan matching failed because of insufficient matches\n");
+      return 0;
+    }
 
     printf("iteration %d: current score: %.9g, best score: %.9g\n", i,
            current_score, *score);

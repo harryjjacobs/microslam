@@ -13,10 +13,10 @@
 #include "types.h"
 
 // the scale factor to use for the convergence threshold
-#define MICROSLAM_SCAN_MATCHING_CONVERGENCE_EPSILON_FACTOR 0.5f
+#define MICROSLAM_SCAN_MATCHING_CONVERGENCE_EPSILON_FACTOR 0.1f
 
 // how many cells away from the scan point to consider inliers
-#define MICROSLAM_SCAN_MATCHING_INLIER_DISTANCE_COUNT 2
+#define MICROSLAM_SCAN_MATCHING_INLIER_DISTANCE_COUNT 5
 
 /**
  * @brief Compute the gradient of the scan matching cost function.
@@ -39,9 +39,14 @@
  * @param pose The pose of the robot in world space when the scan was taken
  * @param gradient The gradient of the cost function w.r.t. the pose
  * @param sum The sum of the squared distances to the nearest leaf
+ *
+ * @return unsigned short 1 if the gradient was computed successfully,
+ * 0 if not enough matches were found.
  */
-void scan_matching_gradient(occupancy_quadtree_t *occupancy, scan_t *scan,
-                            pose_t *pose, pose_t *gradient, float *sum);
+unsigned short scan_matching_gradient(occupancy_quadtree_t *occupancy,
+                                      scan_t *scan, pose_t *pose,
+                                      float min_matches, pose_t *gradient,
+                                      float *sum);
 
 /**
  * @brief Perform scan matching using levenberg-marquardt to find the best pose

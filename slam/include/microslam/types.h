@@ -34,6 +34,7 @@ typedef struct scan_t {
   float range[360];
   float range_error;
   float bearing_error;
+  unsigned short hits;  // number of valid hits in the scan
 } scan_t;
 
 typedef struct robot_t {
@@ -59,29 +60,7 @@ typedef struct occupancy_quadtree_t {
   struct occupancy_quadtree_t *children[4];
 } occupancy_quadtree_t;
 
-typedef struct particle_t {
-  state_t state;
-  float weight;
-} particle_t;
-
-typedef struct particle_filter_params_t {
-  size_t num_particles;
-  float map_width;
-  float map_height;
-  float initial_rotation;  // initial rotation of the particles
-  // range +- to use for the initial rotation of the particles
-  float random_rotation_range;
-} particle_filter_params_t;
-
-typedef struct particle_filter_t {
-  particle_t *particles;
-  particle_filter_params_t params;
-  state_t state;
-} particle_filter_t;
-
 typedef struct microslam_params_t {
-  size_t particles;
-
 } microslam_params_t;
 
 #endif /* MICROSLAM_TYPES_H_ */

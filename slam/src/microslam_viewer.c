@@ -32,22 +32,6 @@ void draw_robot(pose_t *pose, float r, float g, float b, float a) {
   glPopMatrix();
 }
 
-void draw_particles(particle_t *particles, size_t num_particles) {
-  for (size_t i = 0; i < num_particles; i++) {
-    float size = 0.025;
-    glPushMatrix();
-    glTranslatef(particles[i].state.pose.x, particles[i].state.pose.y, 0);
-    glRotatef(particles[i].state.pose.r * 180 / PI, 0, 0, 1);
-    glBegin(GL_TRIANGLES);
-    glColor3f(0, 0, 1);
-    glVertex2f(0, size);
-    glVertex2f(size, -size);
-    glVertex2f(-size, -size);
-    glEnd();
-    glPopMatrix();
-  }
-}
-
 void draw_state(state_t *state) {
   printf("draw_state: %f %f %f\n", state->pose.x, state->pose.y, state->pose.r);
   static float size = 0.1;

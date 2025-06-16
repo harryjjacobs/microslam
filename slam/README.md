@@ -1,4 +1,4 @@
-# microslam
+# microslam library
 
 Simple and lightweight C++ LiDAR-based SLAM library for running on microcontrollers.
 

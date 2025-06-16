@@ -97,7 +97,7 @@ void test_scan_matching_gradient_simple() {
 
   pose_t gradient;
   float score;
-  scan_matching_gradient(&occupancy, &scan, &robot_pose, &gradient, &score);
+  scan_matching_gradient(&occupancy, &scan, &robot_pose, 0, &gradient, &score);
   TEST_ASSERT_FLOAT_WITHIN(1e-9, 0.0f, gradient.x);
   TEST_ASSERT_FLOAT_WITHIN(1e-9, 0.0f, gradient.y);
   TEST_ASSERT_FLOAT_WITHIN(1e-9, 0.0f, gradient.r);
@@ -109,13 +109,13 @@ void test_scan_matching_gradient_simple() {
   // this means the gradient should be negative in the x direction since the
   // scan should be moved to the left to match the ground truth scan.
   robot_pose.x = leaf_size * 0.75f;
-  scan_matching_gradient(&occupancy, &scan, &robot_pose, &gradient, &score);
+  scan_matching_gradient(&occupancy, &scan, &robot_pose, 0, &gradient, &score);
   TEST_ASSERT_FLOAT_WITHIN(1e-2, -0.25 * leaf_size, gradient.x);
   TEST_ASSERT_FLOAT_WITHIN(1e-2, 0.0f, gradient.y);
   TEST_ASSERT_FLOAT_WITHIN(1e-2, 0.0f, gradient.r);
 
   robot_pose.x = leaf_size * 8.5f;
-  scan_matching_gradient(&occupancy, &scan, &robot_pose, &gradient, &score);
+  scan_matching_gradient(&occupancy, &scan, &robot_pose, 0, &gradient, &score);
   TEST_ASSERT_FLOAT_WITHIN(1e-2, -8 * leaf_size, gradient.x);
   TEST_ASSERT_FLOAT_WITHIN(1e-2, 0.0f, gradient.y);
   TEST_ASSERT_FLOAT_WITHIN(1e-2, 0.0f, gradient.r);
@@ -143,7 +143,8 @@ void test_scan_matching_gradient() {
 
   pose_t gradient;
   float score;
-  scan_matching_gradient(&occupancy, &gt_scan, &robot_pose, &gradient, &score);
+  scan_matching_gradient(&occupancy, &gt_scan, &robot_pose, 0, &gradient,
+                         &score);
   TEST_ASSERT_FLOAT_WITHIN(1e-4f, 0.0f, gradient.x);
   TEST_ASSERT_FLOAT_WITHIN(1e-4f, 0.0f, gradient.y);
   TEST_ASSERT_FLOAT_WITHIN(1e-4f, 0.0f, gradient.r);
@@ -155,13 +156,15 @@ void test_scan_matching_gradient() {
   // this means the gradient should be negative in the x direction since the
   // scan should be moved to the left to match the ground truth scan.
   robot_pose.x = 0.1f;
-  scan_matching_gradient(&occupancy, &gt_scan, &robot_pose, &gradient, &score);
+  scan_matching_gradient(&occupancy, &gt_scan, &robot_pose, 0, &gradient,
+                         &score);
   TEST_ASSERT_LESS_THAN_FLOAT(0.0f, gradient.x);
   TEST_ASSERT_FLOAT_WITHIN(1e-2f, 0.0f, gradient.y);
   TEST_ASSERT_FLOAT_WITHIN(1e-2f, 0.0f, gradient.r);
 
   robot_pose.x = -0.3f;
-  scan_matching_gradient(&occupancy, &gt_scan, &robot_pose, &gradient, &score);
+  scan_matching_gradient(&occupancy, &gt_scan, &robot_pose, 0, &gradient,
+                         &score);
   TEST_ASSERT_GREATER_THAN_FLOAT(0.0f, gradient.x);
   TEST_ASSERT_FLOAT_WITHIN(1e-4f, 0.0f, gradient.y);
   TEST_ASSERT_FLOAT_WITHIN(1e-4f, 0.0f, gradient.r);
@@ -189,7 +192,8 @@ void test_scan_matching() {
 
   pose_t gradient;
   float score;
-  scan_matching_gradient(&occupancy, &gt_scan, &robot_pose, &gradient, &score);
+  scan_matching_gradient(&occupancy, &gt_scan, &robot_pose, 0, &gradient,
+                         &score);
   TEST_ASSERT_FLOAT_WITHIN(1e-4, 0.0f, gradient.x);
   TEST_ASSERT_FLOAT_WITHIN(1e-4, 0.0f, gradient.y);
   TEST_ASSERT_FLOAT_WITHIN(1e-4, 0.0f, gradient.r);
