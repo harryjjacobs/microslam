@@ -1,7 +1,0 @@
-../Core/Inc/vehicle/adc.h:15:3:ADC::ADC(ADC_HandleTypeDef&)	16	static
-../Core/Inc/vehicle/adc.h:19:8:void ADC::init()	16	static
-../Core/Inc/vehicle/adc.h:26:12:uint32_t ADC::poll()	16	static
-../Core/Src/vehicle/vehicle.cpp:23:6:void vehicle_init()	8	static
-../Core/Src/vehicle/vehicle.cpp:52:6:void vehicle_update()	16	static
-../Core/Src/vehicle/vehicle.cpp:56:1:void __static_initialization_and_destruction_0(int, int)	16	static
-../Core/Src/vehicle/vehicle.cpp:56:1:cpp)	8	static
