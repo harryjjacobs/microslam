@@ -1,6 +1,6 @@
 #include <assert.h>
 #include <math.h>
-#include <microslam/utils.h>
+#include <slam/utils.h>
 #include <stdio.h>
 
 float clamp_rotation(float value) {

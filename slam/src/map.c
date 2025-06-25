@@ -1,6 +1,6 @@
 #include <math.h>
-#include <microslam/map.h>
-#include <microslam/utils.h>
+#include <slam/map.h>
+#include <slam/utils.h>
 #include <stdio.h>
 #include <stdlib.h>
 

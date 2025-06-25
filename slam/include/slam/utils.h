@@ -8,7 +8,7 @@
 #ifndef INCLUDE_MICROSLAM_UTILS_H_
 #define INCLUDE_MICROSLAM_UTILS_H_
 
-#include <microslam/types.h>
+#include <slam/types.h>
 #include <stdlib.h>
 
 #define PI 3.14159265359f

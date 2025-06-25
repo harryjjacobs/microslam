@@ -1,10 +1,10 @@
 #include <log/log.h>
 #include <math.h>
-#include <microslam/map.h>
-#include <microslam/microslam_viewer.h>
-#include <microslam/scan.h>
-#include <microslam/scan_matching.h>
-#include <microslam/utils.h>
+#include <slam/map.h>
+#include <slam/microslam_viewer.h>
+#include <slam/scan.h>
+#include <slam/scan_matching.h>
+#include <slam/utils.h>
 
 /**
  * @brief Generate a scan inside a roughly square area with some obstacles in

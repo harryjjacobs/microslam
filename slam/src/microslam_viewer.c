@@ -1,7 +1,7 @@
 #include <GLFW/glfw3.h>
 #include <math.h>
-#include <microslam/microslam_viewer.h>
-#include <microslam/occupancy_quadtree.h>
+#include <slam/microslam_viewer.h>
+#include <slam/occupancy_quadtree.h>
 #include <stdio.h>
 #include <stdlib.h>
 

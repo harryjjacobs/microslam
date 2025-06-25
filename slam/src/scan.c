@@ -1,4 +1,4 @@
-#include <microslam/scan.h>
+#include <slam/scan.h>
 
 void scan_init(scan_t *scan, float bearing_error, float range_error) {
   scan_reset(scan);

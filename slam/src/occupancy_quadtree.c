@@ -1,7 +1,7 @@
 #include <log/log.h>
 #include <math.h>
-#include <microslam/occupancy_quadtree.h>
-#include <microslam/utils.h>
+#include <slam/occupancy_quadtree.h>
+#include <slam/utils.h>
 #include <stdio.h>
 
 #ifndef OCCUPANCY_QUADTREE_FLOAT_EPSILON

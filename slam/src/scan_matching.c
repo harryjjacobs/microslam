@@ -1,6 +1,6 @@
 #include <math.h>
-#include <microslam/scan_matching.h>
-#include <microslam/utils.h>
+#include <slam/scan_matching.h>
+#include <slam/utils.h>
 #include <stdio.h>
 #include <stdlib.h>
 
