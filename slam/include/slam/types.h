@@ -19,10 +19,10 @@ typedef struct pose_t {
   float r;
 } pose_t;
 
-typedef struct state_t {
+typedef struct robot_pose_t {
   pose_t pose;
   pose_t error;
-} state_t;
+} robot_pose_t;
 
 typedef struct lidar_sensor_t {
   float max_range;
@@ -39,7 +39,7 @@ typedef struct scan_t {
 
 typedef struct robot_t {
   lidar_sensor_t lidar;
-  state_t state;
+  robot_pose_t state;
 } robot_t;
 
 typedef struct motion_t {

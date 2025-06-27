@@ -32,7 +32,7 @@ void draw_robot(pose_t *pose, float r, float g, float b, float a) {
   glPopMatrix();
 }
 
-void draw_state(state_t *state) {
+void draw_state(robot_pose_t *state) {
   printf("draw_state: %f %f %f\n", state->pose.x, state->pose.y, state->pose.r);
   static float size = 0.1;
   glPushMatrix();
@@ -133,8 +133,8 @@ void viewer_draw_scan(scan_t *scan, pose_t *pose, float r, float g, float b) {
 }
 
 void viewer_draw_all(occupancy_quadtree_t *occupancy,
-                     state_t *estimated_robot_state, state_t *gt_robot_state,
-                     scan_t *scan) {
+                     robot_pose_t *estimated_robot_state,
+                     robot_pose_t *gt_robot_state, scan_t *scan) {
   viewer_draw_occupancy(occupancy);
   viewer_draw_scan(scan, &gt_robot_state->pose, 0, 0, 1);
   draw_robot(&estimated_robot_state->pose, 0, 1, 0, 1);

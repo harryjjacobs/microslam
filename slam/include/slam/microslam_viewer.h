@@ -23,8 +23,8 @@ void viewer_end_draw(microslam_viewer_t *viewer);
 void viewer_draw_scan(scan_t *scan, pose_t *pose, float r, float g, float b);
 void viewer_draw_occupancy(occupancy_quadtree_t *occupancy);
 void viewer_draw_all(occupancy_quadtree_t *occupancy,
-                     state_t *estimated_robot_state, state_t *gt_robot_state,
-                     scan_t *scan);
+                     robot_pose_t *estimated_robot_state,
+                     robot_pose_t *gt_robot_state, scan_t *scan);
 void viewer_wait(microslam_viewer_t *viewer);
 microslam_viewer_key viewer_getkey(microslam_viewer_t *viewer);
 void viewer_destroy(microslam_viewer_t *viewer);

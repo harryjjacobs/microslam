@@ -66,7 +66,7 @@ void generate_noisy_scan(scan_t *gt_scan, scan_t *scan, pose_t *pose,
   }
 }
 
-void move(state_t *state, motion_t *motion) {
+void move(robot_pose_t *state, motion_t *motion) {
   state->pose.x += motion->dx;
   state->pose.y += motion->dy;
   state->pose.r = rotate(state->pose.r, motion->dr);
@@ -100,7 +100,7 @@ int main() {
   robot.state.pose.y = 0;
   robot.state.pose.r = 0;
 
-  state_t gt_state;
+  robot_pose_t gt_state;
   gt_state.pose.x = 0.75f;
   gt_state.pose.y = 0;
   gt_state.pose.r = 0;

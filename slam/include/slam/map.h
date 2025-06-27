@@ -36,8 +36,8 @@ void map_add_scan(occupancy_quadtree_t *occupancy, scan_t *scan, pose_t *pose,
  * @return unsigned char 1 if converged, 0 otherwise
  */
 unsigned short map_scan_match_lm(occupancy_quadtree_t *occupancy, scan_t *scan,
-                                 state_t *prior, pose_t *estimate, float *score,
-                                 unsigned short iterations);
+                                 robot_pose_t *prior, pose_t *estimate,
+                                 float *score, unsigned short iterations);
 
 /**
  * @brief Perform scan matching using gradient descent to find the best pose for
@@ -52,8 +52,8 @@ unsigned short map_scan_match_lm(occupancy_quadtree_t *occupancy, scan_t *scan,
  * @return unsigned char 1 if converged, 0 otherwise
  */
 unsigned char map_scan_match(occupancy_quadtree_t *occupancy, scan_t *scan,
-                             state_t *prior, pose_t *estimate, float *score,
-                             unsigned short iterations);
+                             robot_pose_t *prior, pose_t *estimate,
+                             float *score, unsigned short iterations);
 
 /**
  * @brief Calculate the entropy of the map
