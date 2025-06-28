@@ -1,5 +1,5 @@
-#include <log/log.h>
 #include <math.h>
+#include <slam/logging.h>
 #include <slam/map.h>
 #include <slam/microslam_viewer.h>
 #include <slam/scan.h>
@@ -73,8 +73,6 @@ void move(robot_pose_t *state, motion_t *motion) {
 }
 
 int main() {
-  log_set_level(LOG_INFO);
-
   microslam_viewer_t viewer;
   viewer_init(&viewer);
 
@@ -176,10 +174,10 @@ int main() {
                           robot.lidar.max_range);
 
       double entropy = map_entropy(&occ);
-      log_info("occupancy map entropy: %f", entropy);
+      INFO("occupancy map entropy: %f", entropy);
 
       if (entropy < map_leaf_size * 0.1) {
-        log_info("map is empty, skipping scan matching");
+        INFO("map is empty, skipping scan matching");
         // update the occupancy grid
         map_add_scan(&occ, &scan, &robot.state.pose, 1.0);
       } else if (scan.hits > 30) {
@@ -188,9 +186,9 @@ int main() {
         float score = INFINITY;
         if (scan_matching_match(&occ, &scan, &robot.state.pose, &pose_estimate,
                                 &score, 1000)) {
-          log_info("scan match score: %f", score);
-          log_info("scan match pose estimate: %f %f %f", pose_estimate.x,
-                   pose_estimate.y, pose_estimate.r);
+          INFO("scan match score: %f", score);
+          INFO("scan match pose estimate: %f %f %f", pose_estimate.x,
+               pose_estimate.y, pose_estimate.r);
           robot.state.pose.x = pose_estimate.x;
           robot.state.pose.y = pose_estimate.y;
           robot.state.pose.r = pose_estimate.r;
@@ -200,10 +198,10 @@ int main() {
         }
       }
 
-      log_info("ground truth pose: %f %f %f", gt_state.pose.x, gt_state.pose.y,
-               gt_state.pose.r);
-      log_info("robot pose: %f %f %f", robot.state.pose.x, robot.state.pose.y,
-               robot.state.pose.r);
+      INFO("ground truth pose: %f %f %f", gt_state.pose.x, gt_state.pose.y,
+           gt_state.pose.r);
+      INFO("robot pose: %f %f %f", robot.state.pose.x, robot.state.pose.y,
+           robot.state.pose.r);
     }
 
     // draw

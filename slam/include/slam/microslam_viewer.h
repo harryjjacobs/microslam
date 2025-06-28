@@ -2,8 +2,8 @@
 #define MICROSLAM_VIEWER_H_
 
 #include <GLFW/glfw3.h>
-#include <microslam/types.h>
-#include <microslam/utils.h>
+#include <slam/types.h>
+#include <slam/utils.h>
 
 typedef enum microslam_viewer_key {
   microslam_viewer_key_up,

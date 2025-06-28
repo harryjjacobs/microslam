@@ -1,10 +1,10 @@
 #include <log/log.h>
 
-#include "logging.h"
+#include "slam/logging.h"
 
-void logging_log_trace(const char *file, int line, const char *fmt, ...) {
+void logging_log(int level, const char *file, int line, const char *fmt, ...) {
   va_list args;
   va_start(args, fmt);
-  log_log(LOG_TRACE, file, line, fmt, args);
+  log_log(level, file, line, fmt, args);
   va_end(args);
 }

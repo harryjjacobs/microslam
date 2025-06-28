@@ -1,5 +1,5 @@
-#include <log/log.h>
-#include <microslam/utils.h>
+#include <slam/logging.h>
+#include <slam/utils.h>
 #include <unity/unity.h>
 
 #define FLOAT_EPSILON 1e-6f
@@ -145,8 +145,6 @@ void setUp(void) {}
 void tearDown(void) {}
 
 int main(void) {
-  log_set_level(LOG_INFO);
-
   UNITY_BEGIN();
 
   RUN_TEST(test_calc_bearing_to_point);

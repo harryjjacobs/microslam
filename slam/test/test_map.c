@@ -1,10 +1,10 @@
-#include <log/log.h>
 #include <math.h>
-#include <microslam/map.h>
-#include <microslam/microslam_viewer.h>
-#include <microslam/scan.h>
-#include <microslam/types.h>
-#include <microslam/utils.h>
+#include <slam/logging.h>
+#include <slam/map.h>
+#include <slam/microslam_viewer.h>
+#include <slam/scan.h>
+#include <slam/types.h>
+#include <slam/utils.h>
 #include <unity/unity.h>
 
 /**
@@ -54,7 +54,7 @@ void generate_noisy_scan(scan_t *gt_scan, scan_t *scan) {
 //   // use the same ground-truth scan to test the score
 //   float score;
 //   compute_scan_score(&occupancy, &scan, &robot_pose, &score);
-//   log_info("score: %f", score);
+//   INFO("score: %f", score);
 //   // TEST_ASSERT_FLOAT_WITHIN(0.01f, 0.0f, score);
 
 //   microslam_viewer_t viewer;
@@ -87,7 +87,7 @@ void generate_noisy_scan(scan_t *gt_scan, scan_t *scan) {
 //   TEST_ASSERT_FLOAT_WITHIN(1e-3, 0.0f, gradient.y);
 //   TEST_ASSERT_FLOAT_WITHIN(1e-3, 0.0f, gradient.r);
 
-//   log_info("gradient: %f %f %f", gradient.x, gradient.y, gradient.r);
+//   INFO("gradient: %f %f %f", gradient.x, gradient.y, gradient.r);
 
 //   robot_pose.x = 0.1f;
 //   map_scan_match_gradient(&occupancy, &gt_scan, &robot_pose, &gradient,
@@ -164,8 +164,6 @@ void setUp(void) {}
 void tearDown(void) {}
 
 int main(void) {
-  log_set_level(LOG_INFO);
-
   UNITY_BEGIN();
 
   // RUN_TEST(test_map_scan_score);

@@ -1,10 +1,10 @@
-#include <log/log.h>
 #include <math.h>
-#include <microslam/microslam_viewer.h>
-#include <microslam/scan.h>
-#include <microslam/scan_matching.h>
-#include <microslam/types.h>
-#include <microslam/utils.h>
+#include <slam/logging.h>
+#include <slam/microslam_viewer.h>
+#include <slam/scan.h>
+#include <slam/scan_matching.h>
+#include <slam/types.h>
+#include <slam/utils.h>
 #include <unity/unity.h>
 
 /**
@@ -54,7 +54,7 @@ void generate_noisy_scan(scan_t *gt_scan, scan_t *scan) {
 //   // use the same ground-truth scan to test the score
 //   float score;
 //   compute_scan_score(&occupancy, &scan, &robot_pose, &score);
-//   log_info("score: %f", score);
+//   INFO("score: %f", score);
 //   // TEST_ASSERT_FLOAT_WITHIN(0.01f, 0.0f, score);
 
 //   microslam_viewer_t viewer;
@@ -72,8 +72,8 @@ void test_scan_matching_gradient_simple() {
   const unsigned char depth = 6;
   const float leaf_size = map_size / (1 << depth);
 
-  log_info("map size: %.2f, depth: %d, leaf size: %.9g", map_size, depth,
-           leaf_size);
+  INFO("map size: %.2f, depth: %d, leaf size: %.9g", map_size, depth,
+       leaf_size);
 
   occupancy_quadtree_t occupancy;
   occupancy_quadtree_init(&occupancy, 0, 0, map_size, depth);
@@ -102,7 +102,7 @@ void test_scan_matching_gradient_simple() {
   TEST_ASSERT_FLOAT_WITHIN(1e-9, 0.0f, gradient.y);
   TEST_ASSERT_FLOAT_WITHIN(1e-9, 0.0f, gradient.r);
 
-  log_info("gradient: %.9g %.9g %.9g", gradient.x, gradient.y, gradient.r);
+  INFO("gradient: %.9g %.9g %.9g", gradient.x, gradient.y, gradient.r);
 
   // the estimated robot pose is moved slightly to the right which means the
   // scan should be closer to the right edge of the map.
@@ -126,8 +126,8 @@ void test_scan_matching_gradient() {
   const unsigned char depth = 12;
   const float leaf_size = map_size / (1 << depth);
 
-  log_info("map size: %.2f, depth: %d, leaf size: %.9g", map_size, depth,
-           leaf_size);
+  INFO("map size: %.2f, depth: %d, leaf size: %.9g", map_size, depth,
+       leaf_size);
 
   occupancy_quadtree_t occupancy;
   occupancy_quadtree_init(&occupancy, 0, 0, map_size, depth);
@@ -149,7 +149,7 @@ void test_scan_matching_gradient() {
   TEST_ASSERT_FLOAT_WITHIN(1e-4f, 0.0f, gradient.y);
   TEST_ASSERT_FLOAT_WITHIN(1e-4f, 0.0f, gradient.r);
 
-  log_info("gradient: %.9g %.9g %.9g", gradient.x, gradient.y, gradient.r);
+  INFO("gradient: %.9g %.9g %.9g", gradient.x, gradient.y, gradient.r);
 
   // the estimated robot pose is moved slightly to the right which means the
   // scan should be closer to the right edge of the map.
@@ -175,8 +175,8 @@ void test_scan_matching() {
   const unsigned char depth = 12;
   const float leaf_size = map_size / (1 << depth);
 
-  log_info("map size: %.2f, depth: %d, leaf size: %.9g", map_size, depth,
-           leaf_size);
+  INFO("map size: %.2f, depth: %d, leaf size: %.9g", map_size, depth,
+       leaf_size);
 
   occupancy_quadtree_t occupancy;
   occupancy_quadtree_init(&occupancy, 0, 0, map_size, depth);
@@ -198,7 +198,7 @@ void test_scan_matching() {
   TEST_ASSERT_FLOAT_WITHIN(1e-4, 0.0f, gradient.y);
   TEST_ASSERT_FLOAT_WITHIN(1e-4, 0.0f, gradient.r);
 
-  log_info("gradient: %.9g %.9g %.9g", gradient.x, gradient.y, gradient.r);
+  INFO("gradient: %.9g %.9g %.9g", gradient.x, gradient.y, gradient.r);
 
   robot_pose.x = 0.1f;
   unsigned short res = scan_matching_match(&occupancy, &gt_scan, &robot_pose,
@@ -210,8 +210,6 @@ void setUp(void) {}
 void tearDown(void) {}
 
 int main(void) {
-  log_set_level(LOG_INFO);
-
   UNITY_BEGIN();
 
   RUN_TEST(test_scan_matching_gradient_simple);

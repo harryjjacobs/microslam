@@ -1,5 +1,5 @@
-#include <log/log.h>
 #include <math.h>
+#include <slam/logging.h>
 #include <slam/occupancy_quadtree.h>
 #include <slam/utils.h>
 #include <stdio.h>
@@ -39,15 +39,14 @@ occupancy_quadtree_t *occupancy_quadtree_update(occupancy_quadtree_t *quadtree,
       x > quadtree->x + quadtree->size / 2.0f ||
       y < quadtree->y - quadtree->size / 2.0f ||
       y > quadtree->y + quadtree->size / 2.0f) {
-    log_error(
-        "(%f, %f) out of bounds of quadtree. quadtree of size %f at (%f, %f)",
-        x, y, quadtree->size, quadtree->x, quadtree->y);
+    ERROR("(%f, %f) out of bounds of quadtree. quadtree of size %f at (%f, %f)",
+          x, y, quadtree->size, quadtree->x, quadtree->y);
     return NULL;
   }
 
   // this is a leaf node, stop dividing and update the log odds
   if (quadtree->depth >= quadtree->max_depth) {
-    log_debug("updating leaf node log odds to %f at (%f, %f)", log_odds, x, y);
+    DEBUG("updating leaf node log odds to %f at (%f, %f)", log_odds, x, y);
     quadtree->log_odds += log_odds;  // TODO: clamp log odds?
     // update the occupancy
     if (quadtree->log_odds > 0.0f) {
@@ -87,8 +86,8 @@ occupancy_quadtree_t *occupancy_quadtree_update(occupancy_quadtree_t *quadtree,
   }
 
   if (quadtree->children[quad_idx]->occupancy == OCCUPANCY_FREE) {
-    log_debug("removing free leaf node at (%f, %f)",
-              quadtree->children[quad_idx]->x, quadtree->children[quad_idx]->y);
+    DEBUG("removing free leaf node at (%f, %f)",
+          quadtree->children[quad_idx]->x, quadtree->children[quad_idx]->y);
     // child node is free, free the memory
     free(quadtree->children[quad_idx]);
     quadtree->children[quad_idx] = NULL;

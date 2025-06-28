@@ -1,5 +1,5 @@
-#include <log/log.h>
-#include <microslam/occupancy_quadtree.h>
+#include <slam/logging.h>
+#include <slam/occupancy_quadtree.h>
 #include <unity/unity.h>
 
 #define FLOAT_EPSILON 1e-6f
@@ -275,8 +275,6 @@ void setUp(void) {}
 void tearDown(void) {}
 
 int main(void) {
-  log_set_level(LOG_INFO);
-
   UNITY_BEGIN();
 
   RUN_TEST(test_occupancy_quadtree_init);

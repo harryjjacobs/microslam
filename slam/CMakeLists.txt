@@ -34,9 +34,15 @@ add_library(slam STATIC
     src/scan_matching.c
     src/scan.c
     src/utils.c
+    src/default_logging.c
     thirdparty/log/log.c
 )
 target_include_directories(slam PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty)
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    target_compile_definitions(slam PRIVATE SLAM_LOG_DEBUG)
+else()
+    target_compile_definitions(slam PRIVATE SLAM_LOG_INFO)
+endif()
 
 # === Viewer library ===
 
@@ -52,6 +58,7 @@ add_executable(slam_test_app
     src/main.c
 )
 target_link_libraries(slam_test_app PRIVATE slam microslam_viewer)
+target_compile_definitions(slam_test_app PRIVATE SLAM_LOG_INFO)
 
 # === Unity test object ===
 
