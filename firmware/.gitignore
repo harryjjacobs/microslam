@@ -1,0 +1,6 @@
+managed_components/
+sdkconfig.old
+*.log
+build/
+__pycache__
+.vscode/
