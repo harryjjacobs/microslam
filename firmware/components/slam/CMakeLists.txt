@@ -7,8 +7,10 @@ idf_component_register(
         ${SLAM_SRC_DIR}/src/occupancy_quadtree.c
         ${SLAM_SRC_DIR}/src/utils.c
         ${SLAM_SRC_DIR}/src/scan.c
+        system.c
     INCLUDE_DIRS
         include
         ${SLAM_SRC_DIR}/include
         ${SLAM_SRC_DIR}/thirdparty
+    REQUIRES logging
 )
