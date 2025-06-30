@@ -1,0 +1,19 @@
+{
+    "folders": [
+        {
+            "path": "./firmware",
+        },
+        {
+            "path": "./slam",
+        },
+        {
+            "path": "./",
+        }
+    ],
+    "settings": {},
+    "extensions": {
+        "recommendations": [
+            "espressif.esp-idf-extension",
+        ]
+    }
+}

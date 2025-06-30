@@ -1,0 +1,6 @@
+{
+    "files.exclude": {
+        "firmware": true,
+        "slam": true,
+    }
+}
