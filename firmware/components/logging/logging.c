@@ -2,6 +2,7 @@
 #include "logging.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 
 // Set the log level for the ESP-IDF logging system
 #if SLAM_LOG_LEVEL == SLAM_LOG_LEVEL_TRACE
