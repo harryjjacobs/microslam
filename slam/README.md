@@ -1,6 +1,6 @@
 # slam library
 
-Simple and lightweight C++ LiDAR-based SLAM library for running on microcontrollers.
+Simple and lightweight LiDAR-based SLAM library written in C, for running on a microcontroller.
 
 ## Dependencies
 
