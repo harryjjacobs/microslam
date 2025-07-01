@@ -31,6 +31,17 @@ idf.py flash monitor
 # ctrl-T followed by ctrl-F to build and flash
 ```
 
+## Testing
+
+Currently all unit tests are "host tests". These are tests that run on Linux, rather than on the microcontroller.
+In future additional integration tests that run on the device may be added.
+
+The host unit tests for each component are separate ESP-IDF projects that reside within the component directory.
+See [components/platform/host_test](components/platform/host_test).
+
+These projects can be built using the `idf.py` tool and then the test executable be run manually, or by using the [host_tests.sh](host_tests.sh) script
+which will find all the host test projects and build and run them.
+
 ## Configuring
 
 See the get started guide linked above for full details.
