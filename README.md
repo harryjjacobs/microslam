@@ -19,4 +19,4 @@ If using VS Code, the repository contains a number of configuration files for co
 `workspace.code-workspace` file to open the workspace is convenient for developing when using the ESP-IDF extension.
 
 ## License
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License. See the [LICENCE](LICENCE) file for details.
