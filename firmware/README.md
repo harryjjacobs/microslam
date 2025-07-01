@@ -1,4 +1,4 @@
-# microslam
+# microslam firmware
 
 This is the program that runs on an ESP32-S3 microcontroller. It uses the microslam library and interfaces with the sensors and actuators of the vehicle.
 
@@ -7,6 +7,7 @@ The vehicle is a small robot vacuum (the Neato Robotics D7 Connected Robot Vacuu
 ## Prerequisites
 
 - Install the [ESP-IDF toolchain](https://docs.espressif.com/projects/esp-idf/en/latest/esp32s3/get-started/linux-macos-setup.html).
+- Install `libbsd-dev` (needed for the host tests).
 
 ## Building
 
