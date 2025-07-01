@@ -31,7 +31,7 @@ static const char* TAG = "[microslam]";
 #include "esp_log.h"
 
 void logging_log(int level, const char* file, int line, const char* fmt, ...) {
-  char buffer[256];
+  char buffer[128];
 
   va_list args;
   va_start(args, fmt);
