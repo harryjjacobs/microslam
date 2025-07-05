@@ -47,18 +47,18 @@ endif()
 
 # === Viewer library ===
 
-add_library(microslam_viewer STATIC 
-    src/microslam_viewer.c
+add_library(slam_viewer STATIC 
+    src/viewer.c
 )
-target_include_directories(microslam_viewer PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty)
-target_link_libraries(microslam_viewer PRIVATE slam m glfw GL)
+target_include_directories(slam_viewer PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty)
+target_link_libraries(slam_viewer PRIVATE slam m glfw GL)
 
 # === Test app executable ===
 
 add_executable(slam_test_app
     src/main.c
 )
-target_link_libraries(slam_test_app PRIVATE slam microslam_viewer)
+target_link_libraries(slam_test_app PRIVATE slam slam_viewer)
 target_compile_definitions(slam_test_app PRIVATE SLAM_LOG_INFO)
 
 # === Unity test object ===
