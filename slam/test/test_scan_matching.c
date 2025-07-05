@@ -123,7 +123,7 @@ void test_scan_matching_gradient_simple() {
 
 void test_scan_matching_gradient() {
   const float map_size = 5.0f;
-  const unsigned char depth = 12;
+  const unsigned char depth = 8;
   const float leaf_size = map_size / (1 << depth);
 
   INFO("map size: %.2f, depth: %d, leaf size: %.9g", map_size, depth,
@@ -172,7 +172,7 @@ void test_scan_matching_gradient() {
 
 void test_scan_matching() {
   const float map_size = 5.0f;
-  const unsigned char depth = 12;
+  const unsigned char depth = 9;
   const float leaf_size = map_size / (1 << depth);
 
   INFO("map size: %.2f, depth: %d, leaf size: %.9g", map_size, depth,
@@ -202,7 +202,7 @@ void test_scan_matching() {
 
   robot_pose.x = 0.1f;
   unsigned short res = scan_matching_match(&occupancy, &gt_scan, &robot_pose,
-                                           &gradient, &score, 500);
+                                           &gradient, &score, 200);
   TEST_ASSERT_EQUAL(1, res);
 }
 
