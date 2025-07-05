@@ -83,6 +83,38 @@ void test_serialise_deserialise_occupancy_quadtree(void) {
   occupancy_quadtree_clear(&quadtree);
 }
 
+void test_serialise_deserialise_scan(void) {
+  scan_t scan;
+  scan_reset(&scan);
+
+  for (int i = 0; i < 360; i++) {
+    scan.range[i] = (float)i;
+    scan.hits++;
+  }
+
+  serialisation_buffer_t serialised_data;
+  serialisation_buffer_init(&serialised_data);
+  int result = serialise_scan(&scan, &serialised_data);
+  TEST_ASSERT_EQUAL(0, result);
+  TEST_ASSERT_NOT_NULL(serialised_data.data);
+  TEST_ASSERT_GREATER_THAN(0, serialised_data.length);
+  TEST_ASSERT_EQUAL(sizeof(scan.hits) + 360 * sizeof(float),
+                    serialised_data.length);
+  TEST_ASSERT_EQUAL(360, scan.hits);
+  for (int i = 0; i < 360; i++) {
+    TEST_ASSERT_EQUAL_FLOAT((float)i, scan.range[i]);
+  }
+  scan_t deserialised_scan;
+  size_t offset = 0;
+  result = deserialise_scan(&serialised_data, &offset, &deserialised_scan);
+  TEST_ASSERT_EQUAL(0, result);
+  TEST_ASSERT_EQUAL(scan.hits, deserialised_scan.hits);
+  TEST_ASSERT_EQUAL_MEMORY(scan.range, deserialised_scan.range,
+                           sizeof(scan.range));
+
+  serialisation_buffer_free(&serialised_data);
+}
+
 void setUp(void) {}
 void tearDown(void) {}
 
@@ -91,7 +123,7 @@ int main(void) {
 
   RUN_TEST(test_write_read_header);
   RUN_TEST(test_serialise_deserialise_occupancy_quadtree);
-  RUN_TEST(test_serialise_deserialise_occupancy_quadtree_init);
+  RUN_TEST(test_serialise_deserialise_scan);
 
   UNITY_END();
   return 0;

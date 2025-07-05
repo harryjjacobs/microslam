@@ -130,4 +130,29 @@ int serialise_quadtree(const occupancy_quadtree_t *tree,
 int deserialise_quadtree(const serialisation_buffer_t *buf, size_t *offset,
                          occupancy_quadtree_t *tree);
 
+/**
+ * @brief Serializes a scan structure into a byte buffer.
+ *
+ * The serialized data is appended to the buffer. The buffer's size and capacity
+ * will be adjusted as needed.
+ *
+ * @param scan Pointer to the scan data to serialize.
+ * @param buf Pointer to the buffer where serialized data will be appended.
+ * @return 0 on success, negative on failure.
+ */
+int serialise_scan(const scan_t *scan, serialisation_buffer_t *buf);
+
+/**
+ * @brief Deserializes scan data from a byte buffer.
+ *
+ * @param buf Pointer to the buffer containing serialized scan data.
+ * @param offset Pointer to the current reading offset within the buffer;
+ * updated during reading.
+ * @param scan Pointer to the scan structure where deserialized data will be
+ * stored.
+ * @return 0 on success, negative on failure.
+ */
+int deserialise_scan(const serialisation_buffer_t *buf, size_t *offset,
+                     scan_t *scan);
+
 #endif
