@@ -1,13 +1,13 @@
 #include "platform.h"
 
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 
 #include "esp_compiler.h"
 #include "esp_err.h"
-#include "esp_log.h"
 #include "logging.h"
 #include "uart_interface.h"
 
