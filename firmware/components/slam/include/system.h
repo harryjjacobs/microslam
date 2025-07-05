@@ -3,7 +3,6 @@
 
 #include <stdio.h>
 
-#include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "sdkconfig.h"
 
