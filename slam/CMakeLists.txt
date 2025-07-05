@@ -69,17 +69,12 @@ target_include_directories(unity PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty)
 
 # === Tests ===
 
-set(TESTS
-    test/test_map.c
-    test/test_occupancy_quadtree.c
-    test/test_scan_matching.c
-    test/test_utils.c
-)
+if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
+endif()
 
-foreach(TEST_SRC ${TESTS})
-    get_filename_component(TEST_NAME ${TEST_SRC} NAME_WE)
-    add_executable(test_${TEST_NAME} ${TEST_SRC})
-    target_include_directories(test_${TEST_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty)
-    target_link_libraries(test_${TEST_NAME} PRIVATE slam microslam_viewer unity m glfw GL)
-    add_test(NAME ${TEST_NAME} COMMAND test_${TEST_NAME})
-endforeach()
+if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
+    include(CTest)
+    if (BUILD_TESTING)
+        add_subdirectory(test)
+    endif()
+endif()
