@@ -10,6 +10,7 @@ The project is structured as follows:
 
 - `firmware/`: Contains the code for the microcontroller.
 - `slam/`: Contains the core SLAM algorithms and data structures.
+- `viewer/`: Contains a simple viewer for visualising the robot's map and observations in real-time over the network.
 
 ## Development
 
