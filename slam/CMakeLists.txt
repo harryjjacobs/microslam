@@ -35,6 +35,7 @@ add_library(slam STATIC
     src/scan.c
     src/utils.c
     src/default_logging.c
+    src/serialisation.c
     thirdparty/log/log.c
 )
 target_include_directories(slam PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty)
