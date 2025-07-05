@@ -6,209 +6,216 @@
 
 #include "slam/logging.h"
 
-static void buffer_alloc(char **buffer, size_t *buffer_len, size_t new_size) {
-  if (*buffer == NULL || *buffer_len == 0) {
-    *buffer = malloc(new_size);
-    if (*buffer == NULL) {
-      FATAL("Failed to allocate initial buffer");
-      return;
-    }
-    *buffer_len = new_size;
-  } else if (new_size > *buffer_len) {
-    *buffer = realloc(*buffer, new_size);
-    if (*buffer == NULL) {
-      FATAL("Failed to grow buffer");
-      return;
-    }
-    *buffer_len = new_size;
+static int buffer_grow(serialisation_buffer_t *buf, size_t min_capacity) {
+  if (buf->capacity >= min_capacity) return 0;
+
+  size_t new_capacity = buf->capacity > 0 ? buf->capacity : 64;
+  while (new_capacity < min_capacity) {
+    new_capacity *= 2;
   }
-}
 
-static void buffer_append(char **buffer, size_t *buffer_len, const char *data,
-                          size_t data_size) {
-  size_t old_size = *buffer_len;
-  size_t new_size = *buffer_len + data_size;
-  buffer_alloc(buffer, buffer_len, new_size);
-  memcpy(*buffer + old_size, data, data_size);
-  *buffer_len = new_size;
-}
-
-static int buffer_read(const char *buffer, size_t buffer_len, size_t *offset,
-                       char *data, size_t data_size) {
-  if (*offset + data_size > buffer_len) {
-    ERROR("Buffer read out of bounds");
+  char *new_data = realloc(buf->data, new_capacity);
+  if (!new_data) {
+    FATAL("Failed to realloc buffer to %zu bytes", new_capacity);
     return -1;
   }
-  memcpy(data, buffer + *offset, data_size);
+
+  buf->data = new_data;
+  buf->capacity = new_capacity;
+  return 0;
+}
+
+static int buffer_append(serialisation_buffer_t *buf, const char *data,
+                         size_t data_size) {
+  if (buffer_grow(buf, buf->length + data_size) < 0) {
+    return -1;
+  }
+  memcpy(buf->data + buf->length, data, data_size);
+  buf->length += data_size;
+  return 0;
+}
+
+static int buffer_read(const serialisation_buffer_t *buf, size_t *offset,
+                       char *data, size_t data_size) {
+  if (*offset + data_size > buf->length) {
+    ERROR("serialisation_buffer_t read out of bounds");
+    return -1;
+  }
+  memcpy(data, buf->data + *offset, data_size);
   *offset += data_size;
   return 0;
 }
 
-static void append_u8(char **buffer, size_t *buffer_len, uint8_t value) {
-  char data[1];
-  data[0] = value;
-  buffer_append(buffer, buffer_len, data, 1);
+static int append_u8(serialisation_buffer_t *buf, uint8_t value) {
+  char data[1] = {(char)value};
+  return buffer_append(buf, data, 1);
 }
 
-static void append_u32_be(char **buffer, size_t *buffer_len, uint32_t value) {
-  char data[4];
-  data[0] = (value >> 24) & 0xFF;
-  data[1] = (value >> 16) & 0xFF;
-  data[2] = (value >> 8) & 0xFF;
-  data[3] = value & 0xFF;
-  buffer_append(buffer, buffer_len, data, 4);
+static int append_u16_be(serialisation_buffer_t *buf, uint16_t value) {
+  char data[2] = {(char)((value >> 8) & 0xFF), (char)(value & 0xFF)};
+  return buffer_append(buf, data, 2);
 }
 
-static void append_float_be(char **buffer, size_t *buffer_len, float value) {
+static int append_u32_be(serialisation_buffer_t *buf, uint32_t value) {
+  char data[4] = {(char)((value >> 24) & 0xFF), (char)((value >> 16) & 0xFF),
+                  (char)((value >> 8) & 0xFF), (char)(value & 0xFF)};
+  return buffer_append(buf, data, 4);
+}
+
+static int append_float_be(serialisation_buffer_t *buf, float value) {
   uint32_t bits;
   memcpy(&bits, &value, sizeof(bits));
-  append_u32_be(buffer, buffer_len, bits);
+  return append_u32_be(buf, bits);
 }
 
-static int read_u8(const char *buffer, size_t buffer_len, size_t *offset,
+static int read_u8(const serialisation_buffer_t *buf, size_t *offset,
                    uint8_t *value) {
-  if (*offset + 1 > buffer_len) {
-    ERROR("Buffer read out of bounds for u8");
+  if (*offset + 1 > buf->length) {
+    ERROR("serialisation_buffer_t read out of bounds for u8");
     return -1;
   }
-  *value = (uint8_t)buffer[*offset];
+  *value = (uint8_t)buf->data[*offset];
   (*offset)++;
   return 0;
 }
 
-static int read_u16_be(const char *buffer, size_t buffer_len, size_t *offset,
+static int read_u16_be(const serialisation_buffer_t *buf, size_t *offset,
                        uint16_t *value) {
   char data[2];
-  if (buffer_read(buffer, buffer_len, offset, data, 2) < 0) return -1;
+  if (buffer_read(buf, offset, data, 2) < 0) return -1;
   *value = ((uint8_t)data[0] << 8) | (uint8_t)data[1];
   return 0;
 }
 
-static int read_u32_be(const char *buffer, size_t buffer_len, size_t *offset,
+static int read_u32_be(const serialisation_buffer_t *buf, size_t *offset,
                        uint32_t *value) {
   char data[4];
-  if (buffer_read(buffer, buffer_len, offset, data, 4) < 0) return -1;
+  if (buffer_read(buf, offset, data, 4) < 0) return -1;
   *value = ((uint8_t)data[0] << 24) | ((uint8_t)data[1] << 16) |
            ((uint8_t)data[2] << 8) | (uint8_t)data[3];
   return 0;
 }
 
-static int read_float_be(const char *buffer, size_t buffer_len, size_t *offset,
+static int read_float_be(const serialisation_buffer_t *buf, size_t *offset,
                          float *value) {
   uint32_t bits;
-  if (read_u32_be(buffer, buffer_len, offset, &bits) < 0) return -1;
+  if (read_u32_be(buf, offset, &bits) < 0) return -1;
   memcpy(value, &bits, sizeof(bits));
   return 0;
 }
 
-int write_header(char **buffer, size_t *buffer_len, const char id[4]) {
-  if (buffer == NULL || id == NULL) {
+void serialisation_buffer_init(serialisation_buffer_t *buf) {
+  buf->data = NULL;
+  buf->length = 0;
+  buf->capacity = 0;
+}
+
+void serialisation_buffer_free(serialisation_buffer_t *buf) {
+  free(buf->data);
+  buf->data = NULL;
+  buf->length = 0;
+  buf->capacity = 0;
+}
+
+int write_header(serialisation_buffer_t *buf, const char id[4]) {
+  if (buf == NULL || id == NULL) {
     ERROR("Invalid buffer or ID for writing header");
     return -1;
   }
 
-  *buffer_len = 0;
-  buffer_alloc(buffer, buffer_len, 6);  // 4 bytes for ID + 2 bytes for length
-  if (*buffer == NULL) {
-    ERROR("Failed to allocate buffer for header");
-    return -1;
-  }
+  // reset buffer length for fresh write
+  buf->length = 0;
 
-  // add the id to the buffer in big-endian format
-  memcpy(*buffer, id, 4);
-  // Initialize the length bytes to zero
-  (*buffer)[4] = 0;  // Placeholder for high byte of length
-  (*buffer)[5] = 0;  // Placeholder for low byte of length
+  // 4 for ID + 2 for length placeholder
+  if (buffer_grow(buf, 6) < 0) return -1;
+
+  memcpy(buf->data, id, 4);
+  buf->length = 6;  // include length placeholder bytes
+
+  // zero the length bytes
+  buf->data[4] = 0;
+  buf->data[5] = 0;
 
   return 0;
 }
 
-int write_header_length(char **buffer, size_t buffer_len) {
-  if (buffer == NULL || *buffer == NULL || buffer_len < 6) {
+int write_header_length(serialisation_buffer_t *buf) {
+  if (buf == NULL || buf->data == NULL || buf->length < 6) {
     ERROR("Invalid buffer for writing header length");
     return -1;
   }
 
-  // the length is stored in the last two bytes of the header
-
-  if (buffer_len > UINT16_MAX) {
-    ERROR("Buffer size exceeds maximum length");
+  if (buf->length > UINT16_MAX) {
+    ERROR("serialisation_buffer_t size exceeds maximum length");
     return -1;
   }
 
-  uint16_t length = (uint16_t)(buffer_len);
-  (*buffer)[4] = (length >> 8) & 0xFF;  // High byte
-  (*buffer)[5] = length & 0xFF;         // Low byte
+  uint16_t length = (uint16_t)(buf->length);
+  buf->data[4] = (length >> 8) & 0xFF;
+  buf->data[5] = length & 0xFF;
 
   return 0;
 }
 
-int read_header(const char *buffer, size_t buffer_len, const char id[4],
-                size_t *length) {
-  if (buffer == NULL || length == NULL || buffer_len < 6) {
-    ERROR("Invalid buffer or length for reading header");
+int read_header(const serialisation_buffer_t *buf, size_t offset, char id[4],
+                uint16_t *length) {
+  if (buf == NULL || length == NULL || buf->length < 6) {
+    ERROR("Invalid buffer, offset, or length for reading header");
     return -1;
   }
 
-  memcpy((char *)id, buffer, 4);
+  memcpy(id, buf->data + offset, 4);
 
-  uint16_t len;
-  if (read_u16_be(buffer, buffer_len, &(size_t){4}, &len) < 0) {
+  if (read_u16_be(buf, &(size_t){offset + 4}, length) < 0) {
     ERROR("Failed to read length from buffer");
     return -1;
   }
 
-  *length = len;
   return 0;
 }
 
 static int serialise_quadtree_rec(const occupancy_quadtree_t *tree,
-                                  char **buffer, size_t *buffer_pos) {
+                                  serialisation_buffer_t *buf) {
   if (tree == NULL) {
-    buffer_append(buffer, buffer_pos, &(char){0}, sizeof(char));
-    return 0;
+    return append_u8(buf, 0);
   }
 
-  buffer_append(buffer, buffer_pos, &(char){1}, sizeof(char));
+  if (append_u8(buf, 1) < 0) return -1;
 
-  append_u8(buffer, buffer_pos, tree->max_depth);
-  append_float_be(buffer, buffer_pos, tree->size);
-  append_float_be(buffer, buffer_pos, tree->x);
-  append_float_be(buffer, buffer_pos, tree->y);
-  append_u8(buffer, buffer_pos, tree->depth);
-  append_u32_be(buffer, buffer_pos, tree->occupancy);
-  append_float_be(buffer, buffer_pos, tree->log_odds);
+  if (append_u8(buf, tree->max_depth) < 0) return -1;
+  if (append_float_be(buf, tree->size) < 0) return -1;
+  if (append_float_be(buf, tree->x) < 0) return -1;
+  if (append_float_be(buf, tree->y) < 0) return -1;
+  if (append_u8(buf, tree->depth) < 0) return -1;
+  if (append_u32_be(buf, tree->occupancy) < 0) return -1;
+  if (append_float_be(buf, tree->log_odds) < 0) return -1;
 
   for (size_t i = 0; i < 4; i++) {
-    occupancy_quadtree_t *child = tree->children[i];
-    int result = serialise_quadtree_rec(child, buffer, buffer_pos);
-    if (result < 0) {
-      return result;
-    }
+    if (serialise_quadtree_rec(tree->children[i], buf) < 0) return -1;
   }
 
   return 0;
 }
 
-int serialise_quadtree(const occupancy_quadtree_t *tree, char **buffer,
-                       size_t *buffer_len) {
-  if (tree == NULL || buffer == NULL || buffer_len == 0) {
+int serialise_quadtree(const occupancy_quadtree_t *tree,
+                       serialisation_buffer_t *buf) {
+  if (tree == NULL || buf == NULL) {
     ERROR("Invalid tree or buffer for serialisation");
     return -1;
   }
-  return serialise_quadtree_rec(tree, buffer, buffer_len);
+  return serialise_quadtree_rec(tree, buf);
 }
 
-static int deserialise_quadtree_rec(const char *buffer, size_t buffer_len,
+static int deserialise_quadtree_rec(const serialisation_buffer_t *buf,
                                     size_t *offset,
                                     occupancy_quadtree_t **tree) {
-  char is_null;
-  if (buffer_read(buffer, buffer_len, offset, &is_null, sizeof(is_null)) < 0) {
+  uint8_t is_not_null;
+  if (read_u8(buf, offset, &is_not_null) < 0) {
     DEBUG("Failed to read is_null flag for quadtree node");
     return -1;
   }
 
-  if (is_null == 0) {
+  if (is_not_null == 0) {
     *tree = NULL;
     return 0;
   }
@@ -221,18 +228,20 @@ static int deserialise_quadtree_rec(const char *buffer, size_t buffer_len,
     }
   }
 
-  if (read_u8(buffer, buffer_len, offset, &(*tree)->max_depth) < 0) return -1;
-  if (read_float_be(buffer, buffer_len, offset, &(*tree)->size) < 0) return -1;
-  if (read_float_be(buffer, buffer_len, offset, &(*tree)->x) < 0) return -1;
-  if (read_float_be(buffer, buffer_len, offset, &(*tree)->y) < 0) return -1;
-  if (read_u8(buffer, buffer_len, offset, &(*tree)->depth) < 0) return -1;
+  if (read_u8(buf, offset, &(*tree)->max_depth) < 0) return -1;
+  if (read_float_be(buf, offset, &(*tree)->size) < 0) return -1;
+  if (read_float_be(buf, offset, &(*tree)->x) < 0) return -1;
+  if (read_float_be(buf, offset, &(*tree)->y) < 0) return -1;
+  if (read_u8(buf, offset, &(*tree)->depth) < 0) return -1;
+
   uint32_t occupancy;
-  if (read_u32_be(buffer, buffer_len, offset, &occupancy) < 0) {
+  if (read_u32_be(buf, offset, &occupancy) < 0) {
     free(*tree);
     return -1;
   }
   (*tree)->occupancy = occupancy;
-  if (read_float_be(buffer, buffer_len, offset, &(*tree)->log_odds) < 0) {
+
+  if (read_float_be(buf, offset, &(*tree)->log_odds) < 0) {
     free(*tree);
     return -1;
   }
@@ -240,7 +249,7 @@ static int deserialise_quadtree_rec(const char *buffer, size_t buffer_len,
   for (size_t i = 0; i < 4; i++) {
     (*tree)->children[i] = NULL;
     occupancy_quadtree_t *child = NULL;
-    int result = deserialise_quadtree_rec(buffer, buffer_len, offset, &child);
+    int result = deserialise_quadtree_rec(buf, offset, &child);
     if (result < 0) {
       ERROR("Failed to deserialise child %zu of quadtree", i);
       free(*tree);
@@ -254,19 +263,56 @@ static int deserialise_quadtree_rec(const char *buffer, size_t buffer_len,
   return 0;
 }
 
-int deserialise_quadtree(const char *buffer, size_t buffer_len,
+int deserialise_quadtree(const serialisation_buffer_t *buf, size_t *offset,
                          occupancy_quadtree_t *tree) {
-  if (buffer == NULL || buffer_len == 0 || tree == NULL) {
+  if (buf == NULL || buf->length == 0 || tree == NULL) {
     ERROR("Invalid buffer or tree for deserialisation");
     return -1;
   }
 
-  size_t offset = 0;
-  int result = deserialise_quadtree_rec(buffer, buffer_len, &offset, &tree);
+  int result = deserialise_quadtree_rec(buf, offset, &tree);
   if (result < 0) return result;
-  if (offset != buffer_len) {
+  if (*offset != buf->length) {
     ERROR("Deserialisation did not consume the entire buffer");
     return -1;
   }
+  return 0;
+}
+
+int serialise_scan(const scan_t *scan, serialisation_buffer_t *buf) {
+  if (scan == NULL || buf == NULL) {
+    ERROR("Invalid scan or buffer for serialisation");
+    return -1;
+  }
+
+  if (append_u16_be(buf, (uint16_t)scan->hits) < 0) return -1;
+
+  for (int i = 0; i < 360; i++) {
+    if (append_float_be(buf, scan->range[i]) < 0) return -1;
+  }
+
+  return 0;
+}
+
+int deserialise_scan(const serialisation_buffer_t *buf, size_t *offset,
+                     scan_t *scan) {
+  if (buf == NULL || offset == NULL || scan == NULL) {
+    ERROR("Invalid buffer or offset or scan for deserialisation");
+    return -1;
+  }
+
+  // Check minimum size to read hits + 360 floats:
+  size_t needed = sizeof(scan->hits) + 360 * sizeof(float);
+  if (*offset + needed > buf->length) {
+    ERROR("Buffer too small for scan deserialisation");
+    return -1;
+  }
+
+  if (read_u16_be(buf, offset, &scan->hits) < 0) return -1;
+
+  for (int i = 0; i < 360; i++) {
+    if (read_float_be(buf, offset, &scan->range[i]) < 0) return -1;
+  }
+
   return 0;
 }

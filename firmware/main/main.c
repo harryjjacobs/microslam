@@ -19,7 +19,7 @@ void app_main(void) {
   slam_system_init(&system);
 
   scan_t scan;
-  scan_init(&scan, 0, 0);
+  scan_reset(&scan);
 
   int start, elapsed;
   while (1) {

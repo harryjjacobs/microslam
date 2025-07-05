@@ -42,7 +42,7 @@ int uart_read_callback(void *data, uint32_t length, int cmock_num_calls) {
 
 void test_platform_get_lidar(void) {
   scan_t scan;
-  scan_init(&scan, 0, 0);
+  scan_reset(&scan);
 
   uart_write_ExpectAndReturn("GetLDSScan\n", 11, 11);
 

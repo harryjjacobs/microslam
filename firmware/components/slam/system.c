@@ -18,7 +18,7 @@ static slam_localisation_result_t localise(occupancy_quadtree_t *map,
 void slam_system_init(slam_system_t *state) {
   robot_pose_init(&state->pose);
   map_init(&state->map);
-  scan_init(&state->scan, 0, 0);
+  scan_reset(&state->scan);
 
   INFO("SLAM system initialized with map size %.2f and depth %d", MAP_SIZE,
        MAP_DEPTH);

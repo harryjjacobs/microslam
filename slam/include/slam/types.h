@@ -32,9 +32,7 @@ typedef struct lidar_sensor_t {
 
 typedef struct scan_t {
   float range[360];
-  float range_error;
-  float bearing_error;
-  unsigned short hits;  // number of valid hits in the scan
+  unsigned short hits;  // the number of valid (non-zero) hits in the scan
 } scan_t;
 
 typedef struct robot_t {

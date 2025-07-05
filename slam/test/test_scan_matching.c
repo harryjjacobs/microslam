@@ -23,21 +23,6 @@ void generate_gt_scan(scan_t *gt_scan) {
   }
 }
 
-/**
- * @brief Generate a noisy scan from a ground truth scan
- *
- * @param gt_scan The ground truth scan
- * @param scan The noisy scan
- */
-void generate_noisy_scan(scan_t *gt_scan, scan_t *scan) {
-  for (size_t i = 0; i < 360; i++) {
-    scan->range[i] =
-        gt_scan
-            ->range[(int)(i + random_normalf(0, scan->bearing_error)) % 360] +
-        random_normalf(0, scan->range_error);
-  }
-}
-
 // void test_map_scan_score() {
 //   occupancy_quadtree_t occupancy;
 //   // 5/2^4 = 0.3125
@@ -46,7 +31,7 @@ void generate_noisy_scan(scan_t *gt_scan, scan_t *scan) {
 //   pose_t robot_pose = {.x = 0.0f, .y = 0.0f, .r = 0.0f};
 
 //   scan_t scan;
-//   scan_init(&scan, 0.0f, 0.0f);
+//   scan_reset(&scan);
 
 //   generate_gt_scan(&scan);
 //   map_add_scan(&occupancy, &scan, &robot_pose, 1.0);
@@ -81,7 +66,7 @@ void test_scan_matching_gradient_simple() {
   pose_t robot_pose = {.x = leaf_size / 2, .y = leaf_size / 2, .r = 0.0f};
 
   scan_t scan;
-  scan_init(&scan, 0.0f, 0.0f);
+  scan_reset(&scan);
   scan_add(&scan, 0, leaf_size * 5.0f);
 
   map_add_scan(&occupancy, &scan, &robot_pose, 1.0);
@@ -135,8 +120,8 @@ void test_scan_matching_gradient() {
   pose_t robot_pose = {.x = 0.0f, .y = 0.0f, .r = 0.0f};
 
   scan_t gt_scan, scan;
-  scan_init(&gt_scan, 0.0f, 0.0f);
-  scan_init(&scan, 0.0f, 0.0f);
+  scan_reset(&gt_scan);
+  scan_reset(&scan);
   generate_gt_scan(&gt_scan);
 
   map_add_scan(&occupancy, &gt_scan, &robot_pose, 1.0);
@@ -184,8 +169,8 @@ void test_scan_matching() {
   pose_t robot_pose = {.x = 0.0f, .y = 0.0f, .r = 0.0f};
 
   scan_t gt_scan, scan;
-  scan_init(&gt_scan, 0.0f, 0.0f);
-  scan_init(&scan, 0.0f, 0.0f);
+  scan_reset(&gt_scan);
+  scan_reset(&scan);
   generate_gt_scan(&gt_scan);
 
   map_add_scan(&occupancy, &gt_scan, &robot_pose, 1.0);

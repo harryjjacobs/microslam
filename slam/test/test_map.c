@@ -29,12 +29,12 @@ void generate_gt_scan(scan_t *gt_scan) {
  * @param gt_scan The ground truth scan
  * @param scan The noisy scan
  */
-void generate_noisy_scan(scan_t *gt_scan, scan_t *scan) {
+void generate_noisy_scan(lidar_sensor_t *lidar, scan_t *gt_scan, scan_t *scan) {
   for (size_t i = 0; i < 360; i++) {
     scan->range[i] =
         gt_scan
-            ->range[(int)(i + random_normalf(0, scan->bearing_error)) % 360] +
-        random_normalf(0, scan->range_error);
+            ->range[(int)(i + random_normalf(0, lidar->bearing_error)) % 360] +
+        random_normalf(0, lidar->range_error);
   }
 }
 
@@ -46,7 +46,7 @@ void generate_noisy_scan(scan_t *gt_scan, scan_t *scan) {
 //   pose_t robot_pose = {.x = 0.0f, .y = 0.0f, .r = 0.0f};
 
 //   scan_t scan;
-//   scan_init(&scan, 0.0f, 0.0f);
+//   scan_reset(&scan);
 
 //   generate_gt_scan(&scan);
 //   map_add_scan(&occupancy, &scan, &robot_pose, 1.0);
@@ -74,8 +74,8 @@ void generate_noisy_scan(scan_t *gt_scan, scan_t *scan) {
 //   pose_t robot_pose = {.x = 0.0f, .y = 0.0f, .r = 0.0f};
 
 //   scan_t gt_scan, scan;
-//   scan_init(&gt_scan, 0.0f, 0.0f);
-//   scan_init(&scan, 0.0f, 0.0f);
+//   scan_reset(&gt_scan);
+//   scan_reset(&scan);
 //   generate_gt_scan(&gt_scan);
 
 //   map_add_scan(&occupancy, &gt_scan, &robot_pose, 1.0);
@@ -134,19 +134,24 @@ void test_mapping_occupancy_visualisation() {
   occupancy_quadtree_init(&occupancy, 0, 0, 5.0f, 6);
   pose_t robot_pose = {.x = 0.0f, .y = 0.0f, .r = 0.0f};
 
+  lidar_sensor_t lidar;
+  lidar.max_range = 1.0f;
+  lidar.bearing_error = 0.001f;
+  lidar.range_error = 0.02f;
+
   scan_t gt_scan, scan;
-  scan_init(&gt_scan, 0.0f, 0.0f);
-  scan_init(&scan, 0.001f, 0.02f);
+  scan_reset(&gt_scan);
+  scan_reset(&scan);
 
   generate_gt_scan(&gt_scan);
 
-  generate_noisy_scan(&gt_scan, &scan);
+  generate_noisy_scan(&lidar, &gt_scan, &scan);
   map_add_scan(&occupancy, &scan, &robot_pose, 1.0);
 
-  generate_noisy_scan(&gt_scan, &scan);
+  generate_noisy_scan(&lidar, &gt_scan, &scan);
   map_add_scan(&occupancy, &scan, &robot_pose, 1.0);
 
-  generate_noisy_scan(&gt_scan, &scan);
+  generate_noisy_scan(&lidar, &gt_scan, &scan);
   map_add_scan(&occupancy, &scan, &robot_pose, 1.0);
 
   slam_viewer_t viewer;

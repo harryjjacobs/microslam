@@ -39,8 +39,8 @@ void generate_gt_scan(scan_t *gt_scan) {
  * @param pose The pose of the robot
  * @param max_range The maximum range of the sensor
  */
-void generate_noisy_scan(scan_t *gt_scan, scan_t *scan, pose_t *pose,
-                         float max_range) {
+void generate_noisy_scan(lidar_sensor_t *lidar, scan_t *gt_scan, scan_t *scan,
+                         pose_t *pose) {
   for (size_t i = 0; i < 360; i++) {
     size_t idx = i;
 
@@ -58,10 +58,10 @@ void generate_noisy_scan(scan_t *gt_scan, scan_t *scan, pose_t *pose,
     size_t scan_idx = ((size_t)RAD2DEG(angle)) % 360;
 
     // add noise to the range
-    if (dist > max_range) {
+    if (dist > lidar->max_range) {
       scan_add(scan, scan_idx, 0.0f);
     } else {
-      scan_add(scan, scan_idx, dist + random_normalf(0, scan->range_error));
+      scan_add(scan, scan_idx, dist + random_normalf(0, lidar->range_error));
     }
   }
 }
@@ -84,9 +84,8 @@ int main() {
   occupancy_quadtree_init(&occ, 0, 0, map_size, map_depth);
 
   scan_t gt_scan, scan;
-  scan_init(&gt_scan, 0.0f, 0.0f);
-  scan_init(&scan, 0.0f, 0.0f);
-  // scan_init(&scan, 0.001f, 0.02f);
+  scan_reset(&gt_scan);
+  scan_reset(&scan);
   generate_gt_scan(&gt_scan);
 
   robot_t robot;
@@ -170,8 +169,7 @@ int main() {
       scan_reset(&scan);
       // the scan is generated from the ground truth scan
       // and moved to the ground truth robot pose
-      generate_noisy_scan(&gt_scan, &scan, &gt_state.pose,
-                          robot.lidar.max_range);
+      generate_noisy_scan(&robot.lidar, &gt_scan, &scan, &gt_state.pose);
 
       double entropy = map_entropy(&occ);
       INFO("occupancy map entropy: %f", entropy);
