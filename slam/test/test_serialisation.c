@@ -1,5 +1,8 @@
 #include <slam/logging.h>
+#include <slam/occupancy_quadtree.h>
+#include <slam/scan.h>
 #include <slam/serialisation.h>
+#include <slam/types.h>
 #include <unity/unity.h>
 
 #define FLOAT_EPSILON 1e-6f
@@ -23,40 +26,39 @@ void treequal(const occupancy_quadtree_t *a, const occupancy_quadtree_t *b) {
 }
 
 void test_write_read_header(void) {
-  char *buffer = NULL;
-  size_t buffer_pos = 0;
+  serialisation_buffer_t buffer;
+  serialisation_buffer_init(&buffer);
 
   // Write header
-  int result =
-      write_header(&buffer, &buffer_pos, SLAM_SERIALISATION_ID_QUADTREE);
+  int result = write_header(&buffer, &SLAM_SERIALISATION_ID_QUADTREE[0]);
   TEST_ASSERT_EQUAL(0, result);
-  TEST_ASSERT_NOT_NULL(buffer);
-  TEST_ASSERT_EQUAL(buffer_pos, SLAM_SERIALISATION_ID_LEN + 2);
+  TEST_ASSERT_NOT_NULL(buffer.data);
+  TEST_ASSERT_EQUAL(buffer.length, SLAM_SERIALISATION_HEADER_LEN);
 
   // Add some extra data to the buffer
   occupancy_quadtree_t quadtree;
   occupancy_quadtree_init(&quadtree, 0, 0, 16, 3);
-  serialise_quadtree(&quadtree, &buffer, &buffer_pos);
-  TEST_ASSERT_EQUAL(buffer_pos,
-                    SLAM_SERIALISATION_ID_LEN + 2 + sizeof(quadtree));
+
+  serialise_quadtree(&quadtree, &buffer);
+  TEST_ASSERT_EQUAL(33, buffer.length);
 
   // Write length
-  result = write_header_length(&buffer, buffer_pos);
+  result = write_header_length(&buffer);
   TEST_ASSERT_EQUAL(0, result);
 
   // Read header
   char id[SLAM_SERIALISATION_ID_LEN];
-  size_t length = 0;
-  result = read_header(buffer, buffer_pos, id, &length);
+  uint16_t length = 0;
+  result = read_header(&buffer, 0, id, &length);
   TEST_ASSERT_EQUAL(0, result);
-  TEST_ASSERT_EQUAL_MEMORY(SLAM_SERIALISATION_ID_QUADTREE, id,
+  TEST_ASSERT_EQUAL_MEMORY(&SLAM_SERIALISATION_ID_QUADTREE[0], id,
                            SLAM_SERIALISATION_ID_LEN);
-  TEST_ASSERT_EQUAL(buffer_pos, length);
+  TEST_ASSERT_EQUAL(buffer.length, length);
 
-  free(buffer);
+  serialisation_buffer_free(&buffer);
 }
 
-void test_serialise_deserialise_occupancy_quadtree_init(void) {
+void test_serialise_deserialise_occupancy_quadtree(void) {
   occupancy_quadtree_t quadtree;
   occupancy_quadtree_init(&quadtree, 0, 0, 16, 3);  // leaf size = 2
   occupancy_quadtree_update(&quadtree, -7.5, -7.5, 1);
@@ -64,16 +66,16 @@ void test_serialise_deserialise_occupancy_quadtree_init(void) {
   occupancy_quadtree_update(&quadtree, -7.5, 7.5, 3);
   occupancy_quadtree_update(&quadtree, 5.5, -7.5, 4);
 
-  char *serialised_data = NULL;
-  size_t serialised_size = 0;
-  serialise_quadtree(&quadtree, &serialised_data, &serialised_size);
+  serialisation_buffer_t serialised_data;
+  serialisation_buffer_init(&serialised_data);
+  serialise_quadtree(&quadtree, &serialised_data);
 
-  TEST_ASSERT_NOT_NULL(serialised_data);
-  TEST_ASSERT_GREATER_THAN(0, serialised_size);
+  TEST_ASSERT_NOT_NULL(serialised_data.data);
+  TEST_ASSERT_GREATER_THAN(0, serialised_data.length);
 
   occupancy_quadtree_t deserialised_quadtree;
 
-  int result = deserialise_quadtree(serialised_data, serialised_size,
+  int result = deserialise_quadtree(&serialised_data, &(size_t){0},
                                     &deserialised_quadtree);
   TEST_ASSERT_EQUAL(0, result);
   treequal(&quadtree, &deserialised_quadtree);
@@ -88,6 +90,7 @@ int main(void) {
   UNITY_BEGIN();
 
   RUN_TEST(test_write_read_header);
+  RUN_TEST(test_serialise_deserialise_occupancy_quadtree);
   RUN_TEST(test_serialise_deserialise_occupancy_quadtree_init);
 
   UNITY_END();

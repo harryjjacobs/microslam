@@ -12,22 +12,6 @@
  * 4-byte identifier followed by an unsigned 2 byte integer for the length of
  * the data. The size should include the header itself. All data is stored in
  * big-endian format.
- *
- * @example
- * char *buffer;
- * size_t buffer_pos;
- * write_header(&buffer, &buffer_pos, SLAM_SERIALISATION_ID_QUADTREE);
- * serialise_quadtree(tree, &buffer, &buffer_pos);
- * write_header_length(&buffer, buffer_pos);
- *
- * // To read the data back:
- * size_t length;
- * char id[SLAM_SERIALISATION_ID_LEN];
- * read_header(buffer, buffer_pos, id, &length);
- * if (strncmp(id, SLAM_SERIALISATION_ID_QUADTREE, SLAM_SERIALISATION_ID_LEN) == 0) {
- *   occupancy_quadtree_t tree;
- *   deserialise_quadtree(buffer + SLAM_SERIALISATION_ID_LEN + 2, length, &tree);
- * }
  * 
  */
 // clang-format on
@@ -36,85 +20,114 @@
 #define SLAM_SERIALISATION_H_
 
 #include <stddef.h>
+#include <stdint.h>
 
 #include "occupancy_quadtree.h"
 #include "types.h"
 
 #define SLAM_SERIALISATION_ID_LEN 4
+#define SLAM_SERIALISATION_HEADER_LEN (SLAM_SERIALISATION_ID_LEN + 2)
+
 // clang-format off
 static const char SLAM_SERIALISATION_ID_QUADTREE[SLAM_SERIALISATION_ID_LEN] = {'Q', 'T', 'R', 'E'};
+static const char SLAM_SERIALISATION_ID_SCAN[SLAM_SERIALISATION_ID_LEN] = {'S', 'C', 'A', 'N'};
 // clang-format on
 
+typedef struct {
+  char *data;
+  size_t length;    // bytes used
+  size_t capacity;  // bytes allocated
+} serialisation_buffer_t;
+
 /**
- * @brief Writes a header to an empty buffer. This will initialise the length
- * field to 0, which should be updated later using `write_header_length`.
+ * @brief Initializes a serialisation buffer. Should be called before using
+ * the buffer with any serialisation functions.
  *
- * The header consists of a 4-byte identifier followed by an unsigned
- * 2-byte integer for the length of the data. All data is stored in big-endian
- * format.
+ * @param buf
+ */
+void serialisation_buffer_init(serialisation_buffer_t *buf);
+
+/**
+ * @brief Frees the memory allocated for a serialisation buffer.
  *
- * @param buffer Pointer to a pointer where the header will be written.
- * @param buffer_len Pointer to a size_t where the size of the buffer will be
+ * @param buf
+ */
+void serialisation_buffer_free(serialisation_buffer_t *buf);
+
+/**
+ * @brief Writes a fixed-size header to a buffer.
+ *
+ * The header consists of:
+ * - A 4-byte identifier (not null-terminated)
+ * - A 2-byte unsigned integer representing the length of the data
+ *
+ * All multi-byte values are stored in big-endian format.
+ *
+ * This function initializes the buffer with the header and sets the length
+ * field to zero, which should be updated later by calling
+ * `write_header_length`.
+ *
+ * @param buf Pointer to the buffer where the header will be written. It should
+ * be empty or newly allocated.
+ * @param id A 4-byte identifier (e.g., "SLAM", "DATA").
+ * @return 0 on success, negative on failure.
+ */
+int write_header(serialisation_buffer_t *buf, const char id[4]);
+
+/**
+ * @brief Updates the length field in the header to match the current buffer
+ * size.
+ *
+ * This function should be called after all data has been written to the buffer,
+ * to finalize the length field in the header.
+ *
+ * @param buf Pointer to the buffer containing the header and serialized data.
+ * @return 0 on success, negative on failure.
+ */
+int write_header_length(serialisation_buffer_t *buf);
+
+/**
+ * @brief Reads the header bytes from a buffer.
+ *
+ * This function extracts the 4-byte ID and 2-byte length field from the buffer.
+ * The caller should check if the ID matches the expected value and whether the
+ * length is valid for further processing.
+ *
+ * The buffer must be at least 6 bytes long (4 bytes ID + 2 bytes length).
+ *
+ * @param buf Pointer to the buffer containing the header.
+ * @param offset The offset in the buffer where the header starts.
+ * @param id_out serialisation_buffer_t to store the extracted 4-byte ID.
+ * @param length_out Pointer to store the extracted length value.
+ * @return 0 on success, negative on failure.
+ */
+int read_header(const serialisation_buffer_t *buf, size_t offset,
+                char id_out[4], uint16_t *length_out);
+
+/**
+ * @brief Serializes an occupancy quadtree into a byte buffer.
+ *
+ * The serialized data is appended to the buffer. The buffer's size and capacity
+ * will be adjusted as needed.
+ *
+ * @param tree Pointer to the occupancy quadtree to serialize.
+ * @param buf Pointer to the buffer where serialized data will be appended.
+ * @return 0 on success, negative on failure.
+ */
+int serialise_quadtree(const occupancy_quadtree_t *tree,
+                       serialisation_buffer_t *buf);
+
+/**
+ * @brief Deserializes occupancy quadtree data from a byte buffer.
+ *
+ * @param buf Pointer to the buffer containing serialized quadtree data.
+ * @param offset Pointer to the current reading offset within the buffer;
+ * updated during reading.
+ * @param tree Pointer to the occupancy quadtree struct where data will be
  * stored.
- * @param id A 4-byte identifier (does not need to be null-terminated).
+ * @return 0 on success, negative on failure., size_t *offset
  */
-int write_header(char **buffer, size_t *buffer_len, const char id[4]);
-
-/**
- * @brief Writes the length of the data to the buffer. This should be called
- * after all data has been written to the buffer, and after the header has
- * been written.
- *
- * @param buffer Pointer to the buffer containing the header and data.
- * @param buffer_len The full size of the buffer, including the header.
- * @param length
- */
-int write_header_length(char **buffer, size_t buffer_len);
-
-/**
- * @brief Attempts to read the header bytes from the buffer. The caller should
- * check whether the ID matches the expected ID and whether the length is
- * valid. The buffer must be at least SLAM_SERIALISATION_ID_LEN + 2 bytes.
- *
- * @param buffer Pointer to the buffer containing the header.
- * @param buffer_len Size of the buffer.
- * @param id Pointer to a string where the ID will be stored.
- * @param length Pointer to a size_t where the length of the data will be
- * stored.
- */
-int read_header(const char *buffer, size_t buffer_len, const char id[4],
-                size_t *length);
-
-/**
- * @brief Serialises the occupancy quadtree to a byte array.
- *
- * @details `buffer_pos` should be initialised to before calling this function.
- * It will be used as the initial size of the buffer, and will be updated to the
- * final size of the buffer after serialisation. If the buffer already
- * has data, the serialised data will be appended to it provided that
- * buffer_pos is set to the length of the existing data.
- *
- * @param tree Pointer to the occupancy quadtree to serialise.
- * @param buffer Pointer to a pointer where the serialised data will be stored.
- * The buffer will be allocated dynamically.
- * @param buffer_pos Pointer to a size_t where the size of the serialised data
- * will be stored. This should be initialised before calling this function.
- * @return Returns 0 on success, or a negative value on failure.
- */
-int serialise_quadtree(const occupancy_quadtree_t *tree, char **buffer,
-                       size_t *buffer_pos);
-
-/**
- * @brief Deserialises a byte array into an occupancy quadtree.
- *
- * @param buffer Pointer to the byte array containing the serialised quadtree
- * data.
- * @param buffer_len Size of the byte array.
- * @param tree Pointer to the occupancy quadtree where the deserialised data
- * will be stored.
- * @return Returns 0 on success, or a negative value on failure.
- */
-int deserialise_quadtree(const char *buffer, size_t buffer_len,
+int deserialise_quadtree(const serialisation_buffer_t *buf, size_t *offset,
                          occupancy_quadtree_t *tree);
 
 #endif
