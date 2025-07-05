@@ -14,3 +14,6 @@ these same functions can be used to deserialise the data on the client side.
 Different types of data are sent over the stream, and each type is identified by a unique ID in the header of the message.
 The IDs are defined in the header file linked above.
 
+## Viewer application
+
+Please see [../../../viewer/README.md](../../../viewer/README.md).
