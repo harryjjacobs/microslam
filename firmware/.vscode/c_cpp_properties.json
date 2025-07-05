@@ -1,0 +1,22 @@
+{
+  "configurations": [
+    {
+      "name": "Linux",
+      "includePath": [
+        "${workspaceFolder}/**",
+        "${workspaceFolder}/../slam/thirdparty/unity",
+        "${workspaceFolder}/../firmware/components/platform/include",
+        "${workspaceFolder}/../slam/include"
+      ],
+      "defines": [],
+      "compilerPath": "${config:idf.toolsPath}/tools/xtensa-esp-elf/esp-14.2.0_20241119/xtensa-esp-elf/bin/xtensa-esp32s3-elf-gcc",
+      "cStandard": "c17",
+      "intelliSenseMode": "linux-clang-x64",
+      "compileCommands": [
+        "build/compile_commands.json",
+        "components/**/host_test/build/compile_commands.json"
+      ]
+    }
+  ],
+  "version": 4
+}

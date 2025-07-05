@@ -4,4 +4,3 @@ sdkconfig
 *.log
 build/
 __pycache__
-.vscode/
