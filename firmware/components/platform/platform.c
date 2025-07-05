@@ -83,7 +83,9 @@ void platform_get_lidar(scan_t *scan) {
       // Parse line
       if (sscanf(line, "%d,%d", &angle, &range) == 2) {
         scan->range[scan->hits] = range / 1000.0;
-        scan->hits++;
+        if (range > 0) {
+          scan->hits++;
+        }
       }
 
       // move to the next line
