@@ -79,3 +79,7 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
         add_subdirectory(test)
     endif()
 endif()
+
+# === Aliases for libraries === #
+add_library(slam::slam ALIAS slam)
+add_library(slam::slam_viewer ALIAS slam_viewer)
