@@ -5,8 +5,8 @@
  *      Author: harryjjacobs
  */
 
-#ifndef MICROSLAM_OCCUPANCY_QUADTREE_H_
-#define MICROSLAM_OCCUPANCY_QUADTREE_H_
+#ifndef SLAM_OCCUPANCY_QUADTREE_H_
+#define SLAM_OCCUPANCY_QUADTREE_H_
 
 #include "types.h"
 
@@ -55,4 +55,4 @@ occupancy_quadtree_t *occupancy_quadtree_raycast(occupancy_quadtree_t *quadtree,
 
 // void occupancy_quadtree_k_nearest
 
-#endif /* MICROSLAM_OCCUPANCY_QUADTREE_H_ */
+#endif /* SLAM_OCCUPANCY_QUADTREE_H_ */

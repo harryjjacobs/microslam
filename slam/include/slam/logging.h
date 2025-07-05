@@ -1,6 +1,6 @@
 /**
  * @file logging.h
- * @author Harry Jacobs and Niko the Robot
+ * @author Harry Jacobs
  * @brief Logging macros for SLAM system. Compile-time log level control.
  *
  * @copyright Copyright (c) Harry Jacobs 2025

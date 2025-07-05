@@ -1,12 +1,12 @@
 /*
- * microslam.h
+ * slam.h
  *
  *  Created on: Mar 5, 2024
  *      Author: harryjjacobs
  */
 
-#ifndef MICROSLAM_SCAN_H_
-#define MICROSLAM_SCAN_H_
+#ifndef SLAM_SCAN_H_
+#define SLAM_SCAN_H_
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -21,4 +21,4 @@ void scan_add(scan_t *scan, unsigned short bearing, float range);
 
 // void scan_add(scan_t *scan, observation_t observation);
 
-#endif /* MICROSLAM_SCAN_H_ */
+#endif /* SLAM_SCAN_H_ */

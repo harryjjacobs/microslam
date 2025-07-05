@@ -5,8 +5,8 @@
  *      Author: harryjjacobs
  */
 
-#ifndef MICROSLAM_MAP_H_
-#define MICROSLAM_MAP_H_
+#ifndef SLAM_MAP_H_
+#define SLAM_MAP_H_
 
 #include "occupancy_quadtree.h"
 #include "types.h"
@@ -63,4 +63,4 @@ unsigned char map_scan_match(occupancy_quadtree_t *occupancy, scan_t *scan,
  */
 float map_entropy(occupancy_quadtree_t *occupancy);
 
-#endif /* MICROSLAM_MAP_H_ */
+#endif /* SLAM_MAP_H_ */

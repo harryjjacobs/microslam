@@ -46,7 +46,7 @@ unsigned short scan_matching_gradient(occupancy_quadtree_t *occupancy,
   // and d is the distance to the nearest leaf in the quadtree
 
   const int decimate = 1;  // decimate the scan to speed up the computation
-  const float inlier_distance = MICROSLAM_SCAN_MATCHING_INLIER_DISTANCE_COUNT *
+  const float inlier_distance = SLAM_SCAN_MATCHING_INLIER_DISTANCE_COUNT *
                                 occupancy->size / (1 << occupancy->max_depth);
 
   // transformed scan coordinates (in world frame)
@@ -125,7 +125,7 @@ unsigned short scan_matching_match_lm(occupancy_quadtree_t *occupancy,
                                       unsigned short iterations) {
   const int decimate = 1;
   const float convergence_epsilon = 1e-10;
-  const float inlier_distance = MICROSLAM_SCAN_MATCHING_INLIER_DISTANCE_COUNT *
+  const float inlier_distance = SLAM_SCAN_MATCHING_INLIER_DISTANCE_COUNT *
                                 occupancy->size / (1 << occupancy->max_depth);
   const float initial_lambda = 1e-3f;
   const float lambda_up = 1.5f;
@@ -252,10 +252,9 @@ unsigned char scan_matching_match(occupancy_quadtree_t *occupancy, scan_t *scan,
                                   pose_t *prior, pose_t *estimate, float *score,
                                   unsigned short iterations) {
   // convergence threshold
-  const float epsilon =
-      powf(MICROSLAM_SCAN_MATCHING_CONVERGENCE_EPSILON_FACTOR *
-               occupancy->size / (1 << occupancy->max_depth),
-           2.0f);
+  const float epsilon = powf(SLAM_SCAN_MATCHING_CONVERGENCE_EPSILON_FACTOR *
+                                 occupancy->size / (1 << occupancy->max_depth),
+                             2.0f);
 
   printf("convergence epsilon: %.9g\n", epsilon);
 

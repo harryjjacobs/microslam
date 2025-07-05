@@ -1,10 +1,10 @@
 #include <math.h>
 #include <slam/logging.h>
 #include <slam/map.h>
-#include <slam/microslam_viewer.h>
 #include <slam/scan.h>
 #include <slam/scan_matching.h>
 #include <slam/utils.h>
+#include <slam/viewer.h>
 
 /**
  * @brief Generate a scan inside a roughly square area with some obstacles in
@@ -73,8 +73,8 @@ void move(robot_pose_t *state, motion_t *motion) {
 }
 
 int main() {
-  microslam_viewer_t viewer;
-  viewer_init(&viewer);
+  slam_viewer_t viewer;
+  slam_viewer_init(&viewer);
 
   const float map_size = 5.0f;
   const float map_depth = 7;
@@ -104,11 +104,11 @@ int main() {
   gt_state.pose.r = 0;
 
   // draw ground truth scan
-  // viewer_begin_draw(&viewer);
-  // viewer_draw_scan(&viewer, &gt_scan, &robot.state.pose, 1, 0, 1);
+  // slam_viewerbegin_draw(&viewer);
+  // slam_viewerdraw_scan(&viewer, &gt_scan, &robot.state.pose, 1, 0, 1);
   // map_add_scan(&occ, &gt_scan, &robot.state.pose, 1.0);
-  // viewer_draw_occupancy(&viewer, &occ);
-  // viewer_end_draw(&viewer);
+  // slam_viewerdraw_occupancy(&viewer, &occ);
+  // slam_viewerend_draw(&viewer);
 
   while (!glfwWindowShouldClose(viewer.window)) {
     // process input
@@ -131,9 +131,9 @@ int main() {
     motion.error.y = 0.2;
     motion.error.r = 0.05;
 
-    microslam_viewer_key key = viewer_getkey(&viewer);
+    slam_viewer_key key = slam_viewer_getkey(&viewer);
     switch (key) {
-      case microslam_viewer_key_up:
+      case slam_viewer_key_up:
         motion.dx = linear_speed * cos(gt_state.pose.r);
         motion.dy = linear_speed * sin(gt_state.pose.r);
 
@@ -142,7 +142,7 @@ int main() {
         gt_motion.dy = linear_speed * (1 + random_normalf(0, motion.error.y)) *
                        sin(gt_state.pose.r);
         break;
-      case microslam_viewer_key_down:
+      case slam_viewer_key_down:
         motion.dx = -linear_speed * cos(gt_state.pose.r);
         motion.dy = -linear_speed * sin(gt_state.pose.r);
         gt_motion.dx = linear_speed * (-1 + random_normalf(0, motion.error.x)) *
@@ -150,11 +150,11 @@ int main() {
         gt_motion.dy = linear_speed * (-1 + random_normalf(0, motion.error.y)) *
                        sin(gt_state.pose.r);
         break;
-      case microslam_viewer_key_left:
+      case slam_viewer_key_left:
         motion.dr = angular_speed;
         gt_motion.dr = angular_speed * (1 + random_normalf(0, motion.error.r));
         break;
-      case microslam_viewer_key_right:
+      case slam_viewer_key_right:
         motion.dr = -angular_speed;
         gt_motion.dr = -angular_speed * (1 + random_normalf(0, motion.error.r));
         break;
@@ -162,7 +162,7 @@ int main() {
         break;
     }
 
-    if (key != microslam_viewer_key_none) {
+    if (key != slam_viewer_key_none) {
       // move
       move(&gt_state, &gt_motion);
       move(&robot.state, &motion);
@@ -205,9 +205,9 @@ int main() {
     }
 
     // draw
-    viewer_begin_draw();
-    viewer_draw_all(&occ, &robot.state, &gt_state, &scan);
-    viewer_end_draw(&viewer);
+    slam_viewer_begin_draw();
+    slam_viewer_draw_all(&occ, &robot.state, &gt_state, &scan);
+    slam_viewer_end_draw(&viewer);
   }
 
   return 0;

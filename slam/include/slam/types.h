@@ -1,12 +1,12 @@
 /*
- * microslam.h
+ * slam.h
  *
  *  Created on: Mar 5, 2024
  *      Author: harryjjacobs
  */
 
-#ifndef MICROSLAM_TYPES_H_
-#define MICROSLAM_TYPES_H_
+#ifndef SLAM_TYPES_H_
+#define SLAM_TYPES_H_
 
 #include <stdlib.h>
 
@@ -60,7 +60,7 @@ typedef struct occupancy_quadtree_t {
   struct occupancy_quadtree_t *children[4];
 } occupancy_quadtree_t;
 
-typedef struct microslam_params_t {
-} microslam_params_t;
+typedef struct slam_params_t {
+} slam_params_t;
 
-#endif /* MICROSLAM_TYPES_H_ */
+#endif /* SLAM_TYPES_H_ */

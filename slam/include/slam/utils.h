@@ -5,8 +5,8 @@
  *      Author: harryjjacobs
  */
 
-#ifndef INCLUDE_MICROSLAM_UTILS_H_
-#define INCLUDE_MICROSLAM_UTILS_H_
+#ifndef INCLUDE_SLAM_UTILS_H_
+#define INCLUDE_SLAM_UTILS_H_
 
 #include <slam/types.h>
 #include <stdlib.h>
@@ -252,4 +252,4 @@ void solve_linear_system_3x3(float A[3][3], float b[3], float x[3]);
  */
 float huber_weight(float d, float delta);
 
-#endif /* INCLUDE_MICROSLAM_UTILS_H_ */
+#endif /* INCLUDE_SLAM_UTILS_H_ */

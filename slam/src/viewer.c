@@ -1,7 +1,7 @@
 #include <GLFW/glfw3.h>
 #include <math.h>
-#include <slam/microslam_viewer.h>
 #include <slam/occupancy_quadtree.h>
+#include <slam/viewer.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -18,28 +18,13 @@ static void key_callback(GLFWwindow *window, int key, int scancode, int action,
     glfwSetWindowShouldClose(window, GLFW_TRUE);
 }
 
-void draw_robot(pose_t *pose, float r, float g, float b, float a) {
+void slam_viewer_draw_robot(pose_t *pose, float r, float g, float b, float a) {
   static float size = 0.1;
   glPushMatrix();
   glTranslatef(pose->x, pose->y, 0);
   glRotatef(pose->r * 180 / PI - 90.0f, 0, 0, 1);
   glBegin(GL_TRIANGLES);
   glColor4f(r, g, b, a);
-  glVertex2f(0, size);
-  glVertex2f(size, -size);
-  glVertex2f(-size, -size);
-  glEnd();
-  glPopMatrix();
-}
-
-void draw_state(robot_pose_t *state) {
-  printf("draw_state: %f %f %f\n", state->pose.x, state->pose.y, state->pose.r);
-  static float size = 0.1;
-  glPushMatrix();
-  glTranslatef(state->pose.x, state->pose.y, 0);
-  glRotatef(state->pose.r * 180 / PI, 0, 0, 1);
-  glBegin(GL_TRIANGLES);
-  glColor4f(1, 0, 1, 0.8);
   glVertex2f(0, size);
   glVertex2f(size, -size);
   glVertex2f(-size, -size);
@@ -65,7 +50,7 @@ void window_resize_callback(GLFWwindow *window, int width, int height) {
   glMatrixMode(GL_MODELVIEW);
 }
 
-void viewer_init(microslam_viewer_t *viewer) {
+void slam_viewer_init(slam_viewer_t *viewer) {
   if (!glfwInit()) {
     fprintf(stderr, "Failed to initialize GLFW\n");
     exit(EXIT_FAILURE);
@@ -88,14 +73,14 @@ void viewer_init(microslam_viewer_t *viewer) {
   glClearColor(1, 1, 1, 1);
 }
 
-void viewer_begin_draw() { glClear(GL_COLOR_BUFFER_BIT); }
+void slam_viewer_begin_draw() { glClear(GL_COLOR_BUFFER_BIT); }
 
-void viewer_end_draw(microslam_viewer_t *viewer) {
+void slam_viewer_end_draw(slam_viewer_t *viewer) {
   glfwSwapBuffers(viewer->window);
   glfwPollEvents();
 }
 
-void viewer_draw_occupancy_leaf(occupancy_quadtree_t *leaf, void *data) {
+void slam_viewer_draw_occupancy_leaf(occupancy_quadtree_t *leaf, void *data) {
   (void)data;
   glPushMatrix();
   glTranslatef(leaf->x - leaf->size / 2.0f, leaf->y - leaf->size / 2.0f, 0);
@@ -116,12 +101,13 @@ void viewer_draw_occupancy_leaf(occupancy_quadtree_t *leaf, void *data) {
   glPopMatrix();
 }
 
-void viewer_draw_occupancy(occupancy_quadtree_t *occupancy) {
+void slam_viewer_draw_occupancy(occupancy_quadtree_t *occupancy) {
   occupancy_quadtree_iterate_leafs_depth_first(occupancy, NULL,
-                                               viewer_draw_occupancy_leaf);
+                                               slam_viewer_draw_occupancy_leaf);
 }
 
-void viewer_draw_scan(scan_t *scan, pose_t *pose, float r, float g, float b) {
+void slam_viewer_draw_scan(scan_t *scan, pose_t *pose, float r, float g,
+                           float b) {
   glBegin(GL_LINES);
   glColor3f(r, g, b);
   for (size_t i = 0; i < 360; i++) {
@@ -132,44 +118,44 @@ void viewer_draw_scan(scan_t *scan, pose_t *pose, float r, float g, float b) {
   glEnd();
 }
 
-void viewer_draw_all(occupancy_quadtree_t *occupancy,
-                     robot_pose_t *estimated_robot_state,
-                     robot_pose_t *gt_robot_state, scan_t *scan) {
-  viewer_draw_occupancy(occupancy);
-  viewer_draw_scan(scan, &gt_robot_state->pose, 0, 0, 1);
-  draw_robot(&estimated_robot_state->pose, 0, 1, 0, 1);
-  draw_robot(&gt_robot_state->pose, 0, 1, 0, 0.5);
+void slam_viewer_draw_all(occupancy_quadtree_t *occupancy,
+                          robot_pose_t *estimated_robot_state,
+                          robot_pose_t *gt_robot_state, scan_t *scan) {
+  slam_viewer_draw_occupancy(occupancy);
+  slam_viewer_draw_scan(scan, &gt_robot_state->pose, 0, 0, 1);
+  slam_viewer_draw_robot(&estimated_robot_state->pose, 0, 1, 0, 1);
+  slam_viewer_draw_robot(&gt_robot_state->pose, 0, 1, 0, 0.5);
 }
 
-void viewer_wait(microslam_viewer_t *viewer) {
+void slam_viewer_wait(slam_viewer_t *viewer) {
   while (!glfwWindowShouldClose(viewer->window)) {
     glfwSwapBuffers(viewer->window);
     glfwPollEvents();
   }
 }
 
-microslam_viewer_key viewer_getkey(microslam_viewer_t *viewer) {
+slam_viewer_key slam_viewer_getkey(slam_viewer_t *viewer) {
   int state;
   state = glfwGetKey(viewer->window, GLFW_KEY_W);
   if (state == GLFW_PRESS) {
-    return microslam_viewer_key_up;
+    return slam_viewer_key_up;
   }
   state = glfwGetKey(viewer->window, GLFW_KEY_S);
   if (state == GLFW_PRESS) {
-    return microslam_viewer_key_down;
+    return slam_viewer_key_down;
   }
   state = glfwGetKey(viewer->window, GLFW_KEY_A);
   if (state == GLFW_PRESS) {
-    return microslam_viewer_key_left;
+    return slam_viewer_key_left;
   }
   state = glfwGetKey(viewer->window, GLFW_KEY_D);
   if (state == GLFW_PRESS) {
-    return microslam_viewer_key_right;
+    return slam_viewer_key_right;
   }
-  return microslam_viewer_key_none;
+  return slam_viewer_key_none;
 }
 
-void viewer_destroy(microslam_viewer_t *viewer) {
+void slam_viewer_destroy(slam_viewer_t *viewer) {
   glfwDestroyWindow(viewer->window);
   glfwTerminate();
 }

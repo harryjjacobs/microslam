@@ -5,18 +5,18 @@
  *      Author: harryjjacobs
  */
 
-#ifndef MICROSLAM_SCAN_MATCHING_H_
-#define MICROSLAM_SCAN_MATCHING_H_
+#ifndef SLAM_SCAN_MATCHING_H_
+#define SLAM_SCAN_MATCHING_H_
 
 #include "map.h"
 #include "scan.h"
 #include "types.h"
 
 // the scale factor to use for the convergence threshold
-#define MICROSLAM_SCAN_MATCHING_CONVERGENCE_EPSILON_FACTOR 0.1f
+#define SLAM_SCAN_MATCHING_CONVERGENCE_EPSILON_FACTOR 0.1f
 
 // how many cells away from the scan point to consider inliers
-#define MICROSLAM_SCAN_MATCHING_INLIER_DISTANCE_COUNT 5
+#define SLAM_SCAN_MATCHING_INLIER_DISTANCE_COUNT 5
 
 /**
  * @brief Compute the gradient of the scan matching cost function.
@@ -81,4 +81,4 @@ unsigned char scan_matching_match(occupancy_quadtree_t *occupancy, scan_t *scan,
                                   pose_t *prior, pose_t *estimate, float *score,
                                   unsigned short iterations);
 
-#endif /* MICROSLAM_SCAN_MATCHING_H_ */
+#endif /* SLAM_SCAN_MATCHING_H_ */

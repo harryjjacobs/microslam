@@ -1,10 +1,10 @@
 #include <math.h>
 #include <slam/logging.h>
 #include <slam/map.h>
-#include <slam/microslam_viewer.h>
 #include <slam/scan.h>
 #include <slam/types.h>
 #include <slam/utils.h>
+#include <slam/viewer.h>
 #include <unity/unity.h>
 
 /**
@@ -57,13 +57,13 @@ void generate_noisy_scan(scan_t *gt_scan, scan_t *scan) {
 //   INFO("score: %f", score);
 //   // TEST_ASSERT_FLOAT_WITHIN(0.01f, 0.0f, score);
 
-//   microslam_viewer_t viewer;
-//   viewer_init(&viewer);
+//   slam_viewer_t viewer;
+//   slam_viewer_init(&viewer);
 //   while (!glfwWindowShouldClose(viewer.window)) {
-//     viewer_begin_draw(&viewer);
-//     viewer_draw_scan(&scan, &robot_pose, 1.0f, 0.0f, 0.0f);
-//     viewer_draw_occupancy(&occupancy);
-//     viewer_end_draw(&viewer);
+//     slam_viewer_begin_draw(&viewer);
+//     slam_viewer_draw_scan(&scan, &robot_pose, 1.0f, 0.0f, 0.0f);
+//     slam_viewer_draw_occupancy(&occupancy);
+//     slam_viewer_end_draw(&viewer);
 //   }
 // }
 
@@ -149,14 +149,14 @@ void test_mapping_occupancy_visualisation() {
   generate_noisy_scan(&gt_scan, &scan);
   map_add_scan(&occupancy, &scan, &robot_pose, 1.0);
 
-  microslam_viewer_t viewer;
-  viewer_init(&viewer);
+  slam_viewer_t viewer;
+  slam_viewer_init(&viewer);
 
   while (!glfwWindowShouldClose(viewer.window)) {
-    viewer_begin_draw(&viewer);
-    // viewer_draw_scan(&scan, &robot_pose, 1.0f, 0.0f, 0.0f);
-    viewer_draw_occupancy(&occupancy);
-    viewer_end_draw(&viewer);
+    slam_viewer_begin_draw(&viewer);
+    // slam_viewer_draw_scan(&scan, &robot_pose, 1.0f, 0.0f, 0.0f);
+    slam_viewer_draw_occupancy(&occupancy);
+    slam_viewer_end_draw(&viewer);
   }
 }
 

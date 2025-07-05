@@ -1,10 +1,10 @@
 #include <math.h>
 #include <slam/logging.h>
-#include <slam/microslam_viewer.h>
 #include <slam/scan.h>
 #include <slam/scan_matching.h>
 #include <slam/types.h>
 #include <slam/utils.h>
+#include <slam/viewer.h>
 #include <unity/unity.h>
 
 /**
@@ -57,7 +57,7 @@ void generate_noisy_scan(scan_t *gt_scan, scan_t *scan) {
 //   INFO("score: %f", score);
 //   // TEST_ASSERT_FLOAT_WITHIN(0.01f, 0.0f, score);
 
-//   microslam_viewer_t viewer;
+//   slam_viewer_t viewer;
 //   viewer_init(&viewer);
 //   while (!glfwWindowShouldClose(viewer.window)) {
 //     viewer_begin_draw(&viewer);
@@ -86,7 +86,7 @@ void test_scan_matching_gradient_simple() {
 
   map_add_scan(&occupancy, &scan, &robot_pose, 1.0);
 
-  // microslam_viewer_t viewer;
+  // slam_viewer_t viewer;
   // viewer_init(&viewer);
   // while (!glfwWindowShouldClose(viewer.window)) {
   //   viewer_begin_draw(&viewer);
