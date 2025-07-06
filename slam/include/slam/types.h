@@ -61,9 +61,7 @@ typedef struct occupancy_quadtree_t {
                      // -1000..1000 fits)
   uint8_t depth;
   uint8_t max_depth;
-  uint8_t occupancy : 2;     // 3 states fit in 2 bits
-  uint8_t has_children : 1;  // to quickly check if children exist
-  uint8_t reserved : 5;      // padding to fill the byte
+  uint8_t occupancy;
 
   struct occupancy_quadtree_t *children[4];
 } occupancy_quadtree_t;
