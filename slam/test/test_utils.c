@@ -91,7 +91,7 @@ void test_pose_distance() {
 
 void test_ray_intersects_aabb_from_inside() {
   unsigned char result;
-  float t;
+  uint16_t t;
   result = ray_intersects_aabb(-1, -1, 1, 1, 0, 0, 1, 1, &t);
   TEST_ASSERT_EQUAL_INT(1, result);
   TEST_ASSERT_FLOAT_WITHIN(FLOAT_EPSILON, 1, t);
@@ -99,7 +99,7 @@ void test_ray_intersects_aabb_from_inside() {
 
 void test_ray_intersects_aabb_from_just_outside() {
   unsigned char result;
-  float t;
+  uint16_t t;
   result = ray_intersects_aabb(-100, -5, 3, 3, 3.01, 3.01, -1, -1, &t);
   TEST_ASSERT_EQUAL_INT(1, result);
   TEST_ASSERT_FLOAT_WITHIN(FLOAT_EPSILON, 0.01, t);
@@ -107,7 +107,7 @@ void test_ray_intersects_aabb_from_just_outside() {
 
 void test_ray_intersects_aabb_from_far_outside() {
   unsigned char result;
-  float t;
+  uint16_t t;
   result = ray_intersects_aabb(-1, -1, 1, 1, -1000, -1000, 1, 1, &t);
   TEST_ASSERT_EQUAL_INT(1, result);
   TEST_ASSERT_FLOAT_WITHIN(FLOAT_EPSILON, 999, t);
@@ -115,7 +115,7 @@ void test_ray_intersects_aabb_from_far_outside() {
 
 void test_ray_intersects_aabb_no_intersection() {
   unsigned char result;
-  float t;
+  uint16_t t;
   result = ray_intersects_aabb(-1, -1, 1, 1, 2, 2, 3, 3, &t);
   TEST_ASSERT_EQUAL_INT(0, result);
 }

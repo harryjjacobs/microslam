@@ -13,19 +13,19 @@
  * @param gt_scan The ground truth scan to generate
  */
 void generate_gt_scan(scan_t *gt_scan) {
-  const float square_half_size = 1.5f;
+  const float square_half_size = 1500.0f;
   for (size_t i = 0; i < 360; i++) {
     float r = DEG2RAD(i);
     float dist_x = fabs(square_half_size / cosf(r));
     float dist_y = fabs(square_half_size / sinf(r));
 
-    gt_scan->range[i] = fmin(dist_x, dist_y) + 0.15f * sinf(4.0f * r);
+    gt_scan->range[i] = fmin(dist_x, dist_y) + 150.0f * sinf(4.0f * r);
   }
 
   // add some random obstacles
   for (size_t i = 0; i < 20; i++) {
     float r = random_range_uniformf(0, 2 * PI);
-    float dist = random_range_uniformf(0.5f, 1.5f);
+    float dist = random_range_uniformf(500.0f, 1500.0f);
     size_t idx = (size_t)(RAD2DEG(r) + 360) % 360;
     gt_scan->range[idx] = fmin(gt_scan->range[idx], dist);
   }
@@ -76,12 +76,15 @@ int main() {
   slam_viewer_t viewer;
   slam_viewer_init(&viewer);
 
-  const float map_size = 5.0f;
-  const float map_depth = 7;
-  const float map_leaf_size = map_size / powf(2, map_depth);
+  const uint16_t map_size = 4096;
+  const uint16_t map_depth = 6;
+  const uint16_t map_leaf_size = map_size / (1 << map_depth);
 
   occupancy_quadtree_t occ;
   occupancy_quadtree_init(&occ, 0, 0, map_size, map_depth);
+
+  const uint16_t scan_matching_min_matches = 3;
+  const uint16_t scan_matching_iterations = 1000;
 
   scan_t gt_scan, scan;
   scan_reset(&gt_scan);
@@ -89,16 +92,16 @@ int main() {
   generate_gt_scan(&gt_scan);
 
   robot_t robot;
-  robot.lidar.max_range = 0.8f;
-  robot.lidar.range_error = 0.0;
-  robot.lidar.bearing_error = 0.0;
+  robot.lidar.max_range = 800;
+  robot.lidar.range_error = 0;
+  robot.lidar.bearing_error = 0;
 
-  robot.state.pose.x = 0.75f;
+  robot.state.pose.x = 75;
   robot.state.pose.y = 0;
   robot.state.pose.r = 0;
 
   robot_pose_t gt_state;
-  gt_state.pose.x = 0.75f;
+  gt_state.pose.x = 75;
   gt_state.pose.y = 0;
   gt_state.pose.r = 0;
 
@@ -111,7 +114,7 @@ int main() {
 
   while (!glfwWindowShouldClose(viewer.window)) {
     // process input
-    float linear_speed = 0.01;
+    uint16_t linear_speed = 10;
     float angular_speed = 0.02;
 
     motion_t gt_motion;
@@ -126,8 +129,8 @@ int main() {
     motion.dx = 0;
     motion.dy = 0;
     motion.dr = 0;
-    motion.error.x = 0.2;
-    motion.error.y = 0.2;
+    motion.error.x = 0;  // mm
+    motion.error.y = 0;
     motion.error.r = 0.05;
 
     slam_viewer_key key = slam_viewer_getkey(&viewer);
@@ -171,34 +174,35 @@ int main() {
       // and moved to the ground truth robot pose
       generate_noisy_scan(&robot.lidar, &gt_scan, &scan, &gt_state.pose);
 
-      double entropy = map_entropy(&occ);
+      float entropy = map_entropy(&occ);
       INFO("occupancy map entropy: %f", entropy);
 
-      if (entropy < map_leaf_size * 0.1) {
+      if (entropy < map_leaf_size * 0.0005f) {
         INFO("map is empty, skipping scan matching");
         // update the occupancy grid
-        map_add_scan(&occ, &scan, &robot.state.pose, 1.0);
+        map_add_scan(&occ, &scan, &robot.state.pose, 1);
       } else if (scan.hits > 30) {
         // perform scan matching float score = -INFINITY;
         pose_t pose_estimate;
         float score = INFINITY;
         if (scan_matching_match(&occ, &scan, &robot.state.pose, &pose_estimate,
-                                &score, 1000)) {
+                                &score, scan_matching_min_matches,
+                                scan_matching_iterations)) {
           INFO("scan match score: %f", score);
-          INFO("scan match pose estimate: %f %f %f", pose_estimate.x,
+          INFO("scan match pose estimate: %d %d %f", pose_estimate.x,
                pose_estimate.y, pose_estimate.r);
           robot.state.pose.x = pose_estimate.x;
           robot.state.pose.y = pose_estimate.y;
           robot.state.pose.r = pose_estimate.r;
 
           // update the occupancy grid
-          map_add_scan(&occ, &scan, &robot.state.pose, score * 10);
+          map_add_scan(&occ, &scan, &robot.state.pose, (int32_t)score);
         }
       }
 
-      INFO("ground truth pose: %f %f %f", gt_state.pose.x, gt_state.pose.y,
+      INFO("ground truth pose: %d %d %f", gt_state.pose.x, gt_state.pose.y,
            gt_state.pose.r);
-      INFO("robot pose: %f %f %f", robot.state.pose.x, robot.state.pose.y,
+      INFO("robot pose: %d %d %f", robot.state.pose.x, robot.state.pose.y,
            robot.state.pose.r);
     }
 

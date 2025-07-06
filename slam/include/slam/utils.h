@@ -18,6 +18,11 @@
 #define DEG2RAD(deg) ((deg) * PI / 180.0f)
 #define RAD2DEG(rad) ((rad) * 180.0f / PI)
 
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+#define CLAMP(value, min, max) \
+  ((value) < (min) ? (min) : ((value) > (max) ? (max) : (value)))
+
 /**
  * @brief Clamp a rotation to the range -PI to PI
  *
@@ -118,9 +123,10 @@ float calc_bearing_to_point(pose_t *a, pose_t *b);
  * @param y1
  * @param x2
  * @param y2
- * @return float
+ * @return
  */
-float euclidean_distance_squared(float x1, float y1, float x2, float y2);
+int16_t euclidean_distance_squared(int16_t x1, int16_t y1, int16_t x2,
+                                   int16_t y2);
 
 /**
  * @brief Calculate the euclidean distance between two poses
@@ -129,16 +135,9 @@ float euclidean_distance_squared(float x1, float y1, float x2, float y2);
  * @param y1
  * @param x2
  * @param y2
- * @return float
+ * @return
  */
-float euclidean_distance(float x1, float y1, float x2, float y2);
-
-/**
- * @brief Sets all components of a pose to zero
- *
- * @param pose
- */
-void pose_init(pose_t *pose);
+int16_t euclidean_distance(int16_t x1, int16_t y1, int16_t x2, int16_t y2);
 
 /**
  * @brief Calculate the euclidean distance between two poses
@@ -147,48 +146,7 @@ void pose_init(pose_t *pose);
  * @param b
  * @return float
  */
-float pose_distance(pose_t *a, pose_t *b);
-
-/**
- * @brief Add two poses together in-place.
- *
- * @param a The pose to be added to
- * @param b The pose to add to a
- */
-void pose_add_inplace(pose_t *a, pose_t *b);
-
-/**
- * @brief Add two poses together in-place, without clamping the rotation
- *
- * @param a The pose to be added to
- * @param b The pose to add to a
- */
-void pose_add_inplace_unclamped_rot(pose_t *a, pose_t *b);
-
-/**
- * @brief Subtract two poses
- *
- * @param a
- * @param b
- * @return pose_t
- */
-pose_t pose_subtract(pose_t *a, pose_t *b);
-
-/**
- * @brief Multiply two poses together in-place, without clamping the rotation
- *
- * @param a
- * @param b
- */
-void pose_multiply_inplace_unclamped_rot(pose_t *a, pose_t *b);
-
-/**
- * @brief Divide a pose by a scalar in-place
- *
- * @param pose
- * @param divisor
- */
-void pose_divide_inplace(pose_t *pose, float divisor);
+int16_t pose_distance(pose_t *a, pose_t *b);
 
 /**
  * @brief Check if a point intersects an axis-aligned bounding box (AABB)
@@ -199,11 +157,11 @@ void pose_divide_inplace(pose_t *pose, float divisor);
  * @param aabb_max_y
  * @param point_x
  * @param point_y
- * @return unsigned char
+ * @return uint8_t
  */
-unsigned char point_intersects_aabb(float aabb_min_x, float aabb_min_y,
-                                    float aabb_max_x, float aabb_max_y,
-                                    float point_x, float point_y);
+uint8_t point_intersects_aabb(int16_t aabb_min_x, int16_t aabb_min_y,
+                              int16_t aabb_max_x, int16_t aabb_max_y,
+                              int16_t point_x, int16_t point_y);
 
 /**
  * @brief Check if a ray intersects an axis-aligned bounding box
@@ -217,13 +175,13 @@ unsigned char point_intersects_aabb(float aabb_min_x, float aabb_min_y,
  * @param ray_direction_x The x component of the ray direction
  * @param ray_direction_y The y component of the ray direction
  * @param t_out The distance along the ray where the nearest intersection occurs
- * @return unsigned char
+ * @return uint8_t
  */
-unsigned char ray_intersects_aabb(float aabb_min_x, float aabb_min_y,
-                                  float aabb_max_x, float aabb_max_y,
-                                  float ray_origin_x, float ray_origin_y,
-                                  float ray_direction_x, float ray_direction_y,
-                                  float *t_out);
+uint8_t ray_intersects_aabb(int16_t aabb_min_x, int16_t aabb_min_y,
+                            int16_t aabb_max_x, int16_t aabb_max_y,
+                            int16_t ray_origin_x, int16_t ray_origin_y,
+                            int16_t ray_direction_x, int16_t ray_direction_y,
+                            uint16_t *t_out);
 
 /**
  * @brief Calculate the Cholesky decomposition of a 3x3 matrix

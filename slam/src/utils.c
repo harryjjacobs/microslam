@@ -112,68 +112,31 @@ float calc_bearing_to_point(pose_t *a, pose_t *b) {
   return rotate((atan2f(b->y - a->y, b->x - a->x) - PI_2), -a->r);
 }
 
-float euclidean_distance_squared(float x1, float y1, float x2, float y2) {
+int16_t euclidean_distance_squared(int16_t x1, int16_t y1, int16_t x2,
+                                   int16_t y2) {
   return (x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2);
 }
 
-float euclidean_distance(float x1, float y1, float x2, float y2) {
-  return sqrtf(euclidean_distance_squared(x1, y1, x2, y2));
+int16_t euclidean_distance(int16_t x1, int16_t y1, int16_t x2, int16_t y2) {
+  return sqrt(euclidean_distance_squared(x1, y1, x2, y2));
 }
 
-void pose_init(pose_t *pose) {
-  pose->x = 0;
-  pose->y = 0;
-  pose->r = 0;
+int16_t pose_distance(pose_t *a, pose_t *b) {
+  return sqrt((a->x - b->x) * (a->x - b->x) + (a->y - b->y) * (a->y - b->y));
 }
 
-float pose_distance(pose_t *a, pose_t *b) {
-  return sqrtf((a->x - b->x) * (a->x - b->x) + (a->y - b->y) * (a->y - b->y));
-}
-
-void pose_add_inplace(pose_t *a, pose_t *b) {
-  a->x += b->x;
-  a->y += b->y;
-  a->r = rotate(a->r, b->r);
-}
-
-void pose_add_inplace_unclamped_rot(pose_t *a, pose_t *b) {
-  a->x += b->x;
-  a->y += b->y;
-  a->r += b->r;
-}
-
-pose_t pose_subtract(pose_t *a, pose_t *b) {
-  pose_t c;
-  c.x = a->x - b->x;
-  c.y = a->y - b->y;
-  c.r = rotate(a->r, -b->r);
-  return c;
-}
-
-void pose_multiply_inplace_unclamped_rot(pose_t *a, pose_t *b) {
-  a->x *= b->x;
-  a->y *= b->y;
-  a->r *= b->r;
-}
-
-void pose_divide_inplace(pose_t *pose, float divisor) {
-  pose->x /= divisor;
-  pose->y /= divisor;
-  pose->r /= divisor;
-}
-
-unsigned char point_intersects_aabb(float aabb_min_x, float aabb_min_y,
-                                    float aabb_max_x, float aabb_max_y,
-                                    float point_x, float point_y) {
+uint8_t point_intersects_aabb(int16_t aabb_min_x, int16_t aabb_min_y,
+                              int16_t aabb_max_x, int16_t aabb_max_y,
+                              int16_t point_x, int16_t point_y) {
   return (point_x >= aabb_min_x && point_x <= aabb_max_x &&
           point_y >= aabb_min_y && point_y <= aabb_max_y);
 }
 
-unsigned char ray_intersects_aabb(float aabb_min_x, float aabb_min_y,
-                                  float aabb_max_x, float aabb_max_y,
-                                  float ray_origin_x, float ray_origin_y,
-                                  float ray_direction_x, float ray_direction_y,
-                                  float *t_out) {
+uint8_t ray_intersects_aabb(int16_t aabb_min_x, int16_t aabb_min_y,
+                            int16_t aabb_max_x, int16_t aabb_max_y,
+                            int16_t ray_origin_x, int16_t ray_origin_y,
+                            int16_t ray_direction_x, int16_t ray_direction_y,
+                            uint16_t *t_out) {
   float tx1 = (aabb_min_x - ray_origin_x) / ray_direction_x,
         tx2 = (aabb_max_x - ray_origin_x) / ray_direction_x;
   float ty1 = (aabb_min_y - ray_origin_y) / ray_direction_y,

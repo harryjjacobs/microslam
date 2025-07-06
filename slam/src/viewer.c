@@ -1,5 +1,6 @@
 #include <GLFW/glfw3.h>
 #include <math.h>
+#include <slam/logging.h>
 #include <slam/occupancy_quadtree.h>
 #include <slam/viewer.h>
 #include <stdio.h>
@@ -8,7 +9,7 @@
 #define WINDOW_WIDTH 800
 #define WINDOW_HEIGHT 800
 
-#define WORLD_SIZE 5.0f
+#define WORLD_SIZE 5000.0f  // size of the world in meters
 
 static void key_callback(GLFWwindow *window, int key, int scancode, int action,
                          int mods) {
@@ -19,7 +20,7 @@ static void key_callback(GLFWwindow *window, int key, int scancode, int action,
 }
 
 void slam_viewer_draw_robot(pose_t *pose, float r, float g, float b, float a) {
-  static float size = 0.1;
+  static float size = 100;
   glPushMatrix();
   glTranslatef(pose->x, pose->y, 0);
   glRotatef(pose->r * 180 / PI - 90.0f, 0, 0, 1);
@@ -81,7 +82,7 @@ void slam_viewer_end_draw(slam_viewer_t *viewer) {
 }
 
 void slam_viewer_draw_occupancy_leaf(occupancy_quadtree_t *leaf, void *data) {
-  (void)data;
+  (*(size_t *)data)++;
   glPushMatrix();
   glTranslatef(leaf->x - leaf->size / 2.0f, leaf->y - leaf->size / 2.0f, 0);
   glBegin(GL_QUADS);
@@ -102,8 +103,10 @@ void slam_viewer_draw_occupancy_leaf(occupancy_quadtree_t *leaf, void *data) {
 }
 
 void slam_viewer_draw_occupancy(occupancy_quadtree_t *occupancy) {
-  occupancy_quadtree_iterate_leafs_depth_first(occupancy, NULL,
+  size_t leaf_count = 0;
+  occupancy_quadtree_iterate_leafs_depth_first(occupancy, &leaf_count,
                                                slam_viewer_draw_occupancy_leaf);
+  // DEBUG("Drew %zu leafs", leaf_count);
 }
 
 void slam_viewer_draw_scan(scan_t *scan, pose_t *pose, float r, float g,

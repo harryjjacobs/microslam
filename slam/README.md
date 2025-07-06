@@ -2,6 +2,8 @@
 
 Simple and lightweight LiDAR-based SLAM library written in C, for running on a microcontroller.
 
+All distances are in millimeters, and all angles are in radians.
+
 ## Dependencies
 
 For visualisation and testing, the following dependencies are required:

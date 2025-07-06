@@ -7,7 +7,7 @@ void scan_reset(scan_t *scan) {
   }
 }
 
-void scan_add(scan_t *scan, unsigned short bearing, float range) {
+void scan_add(scan_t *scan, uint16_t bearing, uint16_t range) {
   scan->range[bearing] = range;
   if (range > 1e-6f) {
     scan->hits++;

@@ -13,7 +13,7 @@
 #include "types.h"
 
 // the scale factor to use for the convergence threshold
-#define SLAM_SCAN_MATCHING_CONVERGENCE_EPSILON_FACTOR 0.1f
+#define SLAM_SCAN_MATCHING_CONVERGENCE_EPSILON_FACTOR 0.025f
 
 // how many cells away from the scan point to consider inliers
 #define SLAM_SCAN_MATCHING_INLIER_DISTANCE_COUNT 5
@@ -40,13 +40,12 @@
  * @param gradient The gradient of the cost function w.r.t. the pose
  * @param sum The sum of the squared distances to the nearest leaf
  *
- * @return unsigned short 1 if the gradient was computed successfully,
+ * @return uint16_t 1 if the gradient was computed successfully,
  * 0 if not enough matches were found.
  */
-unsigned short scan_matching_gradient(occupancy_quadtree_t *occupancy,
-                                      scan_t *scan, pose_t *pose,
-                                      float min_matches, pose_t *gradient,
-                                      float *sum);
+uint16_t scan_matching_gradient(occupancy_quadtree_t *occupancy, scan_t *scan,
+                                pose_t *pose, uint16_t min_matches,
+                                pose_t *gradient, float *sum);
 
 /**
  * @brief Perform scan matching using levenberg-marquardt to find the best pose
@@ -58,12 +57,11 @@ unsigned short scan_matching_gradient(occupancy_quadtree_t *occupancy,
  * @param estimate The estimated pose of the robot after scan matching
  * @param score The score of the scan matching, i.e. the sum of the squared
  * @param iterations The maximum number of iterations to perform
- * @return unsigned char 1 if converged, 0 otherwise
+ * @return uint8_t 1 if converged, 0 otherwise
  */
-unsigned short scan_matching_match_lm(occupancy_quadtree_t *occupancy,
-                                      scan_t *scan, pose_t *prior,
-                                      pose_t *estimate, float *score,
-                                      unsigned short iterations);
+uint16_t scan_matching_match_lm(occupancy_quadtree_t *occupancy, scan_t *scan,
+                                pose_t *prior, pose_t *estimate, float *score,
+                                uint16_t iterations);
 
 /**
  * @brief Perform scan matching using gradient descent to find the best pose for
@@ -75,10 +73,10 @@ unsigned short scan_matching_match_lm(occupancy_quadtree_t *occupancy,
  * @param estimate
  * @param score
  * @param iterations
- * @return unsigned char 1 if converged, 0 otherwise
+ * @return uint8_t 1 if converged, 0 otherwise
  */
-unsigned char scan_matching_match(occupancy_quadtree_t *occupancy, scan_t *scan,
-                                  pose_t *prior, pose_t *estimate, float *score,
-                                  unsigned short iterations);
+uint8_t scan_matching_match(occupancy_quadtree_t *occupancy, scan_t *scan,
+                            pose_t *prior, pose_t *estimate, float *score,
+                            uint16_t min_matches, uint16_t iterations);
 
 #endif /* SLAM_SCAN_MATCHING_H_ */

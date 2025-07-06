@@ -8,14 +8,14 @@
 #ifndef SLAM_TYPES_H_
 #define SLAM_TYPES_H_
 
-#include <stdlib.h>
+#include <stdint.h>
 
-#define LOG_ODDS_OCCUPIED 2.0f
-#define LOG_ODDS_FREE -3.0f
+#define LOG_ODDS_OCCUPIED 2
+#define LOG_ODDS_FREE -3
 
 typedef struct pose_t {
-  float x;
-  float y;
+  int16_t x;
+  int16_t y;
   float r;
 } pose_t;
 
@@ -25,14 +25,14 @@ typedef struct robot_pose_t {
 } robot_pose_t;
 
 typedef struct lidar_sensor_t {
-  float max_range;
-  float range_error;
+  uint16_t max_range;
+  uint16_t range_error;
   float bearing_error;
 } lidar_sensor_t;
 
 typedef struct scan_t {
-  float range[360];
-  unsigned short hits;  // the number of valid (non-zero) hits in the scan
+  uint16_t range[360];
+  uint16_t hits;  // the number of valid (non-zero) hits in the scan
 } scan_t;
 
 typedef struct robot_t {
@@ -41,24 +41,31 @@ typedef struct robot_t {
 } robot_t;
 
 typedef struct motion_t {
-  float dx;
-  float dy;
+  uint16_t dx;
+  uint16_t dy;
   float dr;
   pose_t error;
 } motion_t;
 
+typedef enum {
+  OCCUPANCY_FREE = 0,      // free space
+  OCCUPANCY_OCCUPIED = 1,  // occupied space
+  OCCUPANCY_MIXED = 2,     // mixed state (some children occupied, some free)
+} occupancy_state_t;
+
 typedef struct occupancy_quadtree_t {
-  unsigned char max_depth;
-  unsigned char depth;
-  float x;
-  float y;
-  float size;
-  float log_odds;  // log odds of the occupancy
-  enum { OCCUPANCY_FREE, OCCUPANCY_MIXED, OCCUPANCY_OCCUPIED } occupancy;
+  int16_t x;
+  int16_t y;
+  uint16_t size;
+  int16_t log_odds;  // keep as int16_t to save space (assuming range
+                     // -1000..1000 fits)
+  uint8_t depth;
+  uint8_t max_depth;
+  uint8_t occupancy : 2;     // 3 states fit in 2 bits
+  uint8_t has_children : 1;  // to quickly check if children exist
+  uint8_t reserved : 5;      // padding to fill the byte
+
   struct occupancy_quadtree_t *children[4];
 } occupancy_quadtree_t;
-
-typedef struct slam_params_t {
-} slam_params_t;
 
 #endif /* SLAM_TYPES_H_ */

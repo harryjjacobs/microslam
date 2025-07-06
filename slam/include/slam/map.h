@@ -21,7 +21,7 @@
  * @param weight How much to weight the scan in the update (log odds scale)
  */
 void map_add_scan(occupancy_quadtree_t *occupancy, scan_t *scan, pose_t *pose,
-                  float weight);
+                  int32_t weight);
 
 /**
  * @brief Perform scan matching using levenberg-marquardt to find the best pose
@@ -33,11 +33,11 @@ void map_add_scan(occupancy_quadtree_t *occupancy, scan_t *scan, pose_t *pose,
  * @param estimate
  * @param score
  * @param iterations
- * @return unsigned char 1 if converged, 0 otherwise
+ * @return uint8_t 1 if converged, 0 otherwise
  */
-unsigned short map_scan_match_lm(occupancy_quadtree_t *occupancy, scan_t *scan,
-                                 robot_pose_t *prior, pose_t *estimate,
-                                 float *score, unsigned short iterations);
+uint16_t map_scan_match_lm(occupancy_quadtree_t *occupancy, scan_t *scan,
+                           robot_pose_t *prior, pose_t *estimate,
+                           int16_t *score, uint16_t iterations);
 
 /**
  * @brief Perform scan matching using gradient descent to find the best pose for
@@ -49,11 +49,11 @@ unsigned short map_scan_match_lm(occupancy_quadtree_t *occupancy, scan_t *scan,
  * @param estimate
  * @param score
  * @param iterations
- * @return unsigned char 1 if converged, 0 otherwise
+ * @return uint8_t 1 if converged, 0 otherwise
  */
-unsigned char map_scan_match(occupancy_quadtree_t *occupancy, scan_t *scan,
-                             robot_pose_t *prior, pose_t *estimate,
-                             float *score, unsigned short iterations);
+uint8_t map_scan_match(occupancy_quadtree_t *occupancy, scan_t *scan,
+                       robot_pose_t *prior, pose_t *estimate, int16_t *score,
+                       uint16_t iterations);
 
 /**
  * @brief Calculate the entropy of the map
