@@ -10,26 +10,14 @@
 #define TRANSLATION_EPSILON 1e-5f
 #define ROTATION_EPSILON 1e-5f
 
-typedef struct {
-  float x, y;
-} vec2_t;
-
-// === Utility Functions ===
-
-static inline vec2_t vec2_add(vec2_t a, vec2_t b) {
-  return (vec2_t){a.x + b.x, a.y + b.y};
+static inline void vec2_reset(float* x, float* y) {
+  *x = 0.0f;
+  *y = 0.0f;
 }
 
-static inline vec2_t vec2_sub(vec2_t a, vec2_t b) {
-  return (vec2_t){a.x - b.x, a.y - b.y};
+static inline void mat2x2_reset(float m[4]) {
+  m[0] = m[1] = m[2] = m[3] = 0.0f;
 }
-
-static inline vec2_t vec2_rotate(vec2_t p, float angle) {
-  float c = cosf(angle), s = sinf(angle);
-  return (vec2_t){c * p.x - s * p.y, s * p.x + c * p.y};
-}
-
-static inline float vec2_norm(vec2_t v) { return hypotf(v.x, v.y); }
 
 static inline bool mat2x2_inv(float* mat, float inv[4]) {
   float det = mat[0] * mat[3] - mat[1] * mat[2];
@@ -51,14 +39,12 @@ static inline void mat2x2_add_inplace(float* a, const float* b) {
   a[3] += b[3];
 }
 
-vec2_t scan_to_point(const scan_t* scan, size_t index) {
-  if (index >= 360) {
-    fprintf(stderr, "Index out of bounds in scan_to_point\n");
-    return (vec2_t){0, 0};
-  }
-  float angle = index * PI / 180.0f;  // convert degrees to radians
-  float range = scan->range[index];
-  return (vec2_t){range * cosf(angle), range * sinf(angle)};
+static inline void scan_to_point(const scan_t* scan, size_t i, float* x,
+                                 float* y) {
+  float r = scan->range[i];
+  float a = DEG2RAD(i);
+  *x = r * cosf(a);
+  *y = r * sinf(a);
 }
 
 /**
@@ -71,24 +57,18 @@ vec2_t scan_to_point(const scan_t* scan, size_t index) {
  * @param sigma_theta the standard deviation of the angle noise
  * @param sigma_l the standard deviation of the range noise
  */
-static void calc_noise_covariance(float* cov, float angle, float range,
-                                  float sigma_theta, float sigma_l) {
-  DEBUG(
-      "Calculating noise covariance for angle %.3f, range %.3f, "
-      "sigma_theta %.3f, sigma_l %.3f",
-      angle, range, sigma_theta, sigma_l);
-
+static inline void calc_noise_covariance(float cov[4], float angle, float range,
+                                         float sigma_theta, float sigma_l) {
   const float a = 0.5f * range * range * sigma_theta * sigma_theta;
   const float b = 0.5f * sigma_l * sigma_l;
   const float sin_theta = sinf(angle);
   const float cos_theta = cosf(angle);
-  const float sin_sqr_theta = sin_theta * sin_theta;
-  const float cos_sqr_theta = cos_theta * cos_theta;
-  const float sin_2_theta = sinf(2 * angle);
-  cov[0] = a * 2.0f * sin_sqr_theta + b * 2.0f * cos_sqr_theta;  // xx
-  cov[1] = a * -sin_2_theta + b * sin_2_theta;                   // xy
-  cov[2] = a * -sin_2_theta + b * sin_2_theta;                   // yx
-  cov[3] = a * 2.0f * cos_sqr_theta + b * 2.0f * sin_sqr_theta;  // yy
+  const float sin2 = sin_theta * sin_theta;
+  const float cos2 = cos_theta * cos_theta;
+  const float sin2theta = sinf(2 * angle);
+  cov[0] = a * 2.0f * sin2 + b * 2.0f * cos2;
+  cov[1] = cov[2] = a * -sin2theta + b * sin2theta;
+  cov[3] = a * 2.0f * cos2 + b * 2.0f * sin2;
 }
 
 /**
@@ -99,40 +79,37 @@ static void calc_noise_covariance(float* cov, float angle, float range,
  * @param index the index of the point in the scan
  * @param map the occupancy quadtree map
  */
-static void calc_correspondence_covariance(float* cov, const scan_t* scan,
+static void calc_correspondence_covariance(float cov[4], const scan_t* scan,
                                            uint16_t index,
                                            const occupancy_quadtree_t* map) {
-  // calculate the variance of the correspondence error based on
-  // the quadtree resolution
   const float leaf_size = map->size / (1 << map->max_depth);
   const float variance = (leaf_size * leaf_size) / 3.0f;
-  // calculate the tangent
-  const size_t prev_index = (index - 1 + 360) % 360;
-  const size_t next_index = (index + 1) % 360;
-  if (scan->range[prev_index] <= 1e-6f || scan->range[next_index] <= 1e-6f) {
+
+  size_t prev = (index + 359) % 360;
+  size_t next = (index + 1) % 360;
+  float rp = scan->range[prev], rn = scan->range[next];
+
+  if (rp <= 1e-6f || rn <= 1e-6f) {
     cov[0] = cov[3] = variance;
-    cov[1] = cov[2] = 0;
+    cov[1] = cov[2] = 0.0f;
     return;
   }
 
-  const vec2_t prev = scan_to_point(scan, prev_index);
-  const vec2_t next = scan_to_point(scan, next_index);
-  const vec2_t td = vec2_sub(next, prev);
-
-  const float length = vec2_norm(td);
-  // fallback if the length is too small or the points
-  // are too far apart
-  if (length < 1e-6f || length > leaf_size * 2.0f) {
+  float ap = DEG2RAD(prev), an = DEG2RAD(next);
+  float px = rp * cosf(ap), py = rp * sinf(ap);
+  float nx = rn * cosf(an), ny = rn * sinf(an);
+  float dx = nx - px, dy = ny - py;
+  float len = hypotf(dx, dy);
+  if (len < 1e-6f || len > 2.0f * leaf_size) {
     cov[0] = cov[3] = variance;
-    cov[1] = cov[2] = 0;
+    cov[1] = cov[2] = 0.0f;
     return;
   }
-  // normalize the tangent vector
-  const vec2_t tangent = (vec2_t){td.x / length, td.y / length};
-  cov[0] = variance * tangent.x * tangent.x;  // xx
-  cov[1] = variance * tangent.x * tangent.y;  // xy
-  cov[2] = variance * tangent.y * tangent.x;  // yx
-  cov[3] = variance * tangent.y * tangent.y;  // yy
+  dx /= len;
+  dy /= len;
+  cov[0] = variance * dx * dx;
+  cov[1] = cov[2] = variance * dx * dy;
+  cov[3] = variance * dy * dy;
 }
 
 bool scan_matching_match(const scan_t* current_scan,
@@ -143,184 +120,103 @@ bool scan_matching_match(const scan_t* current_scan,
   // Robot Displacement Estimation (2002) and Robust Weighted Scan Matching
   // with Quadtrees (2009)
 
-  const uint16_t leaf_size = map->size >> map->max_depth;
+  const float leaf_size = map->size / (1 << map->max_depth);
+  const float max_match_dist = 2.0f * leaf_size;
 
-  // nearest neighbor outlier distance
-  const uint16_t nn_outlier_distance = leaf_size * 2;  // N x the leaf size
+  float t_x = initial_guess->x;
+  float t_y = initial_guess->y;
+  float phi = initial_guess->r;
 
-  double phi = initial_guess->r;
-  vec2_t t = {initial_guess->x, initial_guess->y};
-
-  float corresp_cov[4];
-  float noise_cov[4];
-  float cov[4];
-  float cov_inv[4];
-  float cov_inv_sum[4];      // sum(inverse covariance)
-  vec2_t cov_inv_r_sum;      // sum(inverse covariance x residual)
-  float cov_inv_sum_inv[4];  // inverse of the sum of the inverse covariances
-                             // (P_pp)
-  float delta_theta_num;     // numerator for the rotation update
-  float delta_theta_den;     // denominator for the rotation update
-  float dr, dtx, dty;        // delta rotation update and translation updates
-  float ntx, nty;            // new translation
-
-  vec2_t point_b, rotated_point_b, transformed_point_b;
+  float noise_cov[4], corresp_cov[4], cov[4], cov_inv[4];
+  float cov_inv_sum[4], cov_inv_sum_inv[4];
+  float cov_inv_r_sum_x, cov_inv_r_sum_y;
+  float delta_theta_num, delta_theta_den;
 
   for (int iter = 0; iter < 100; iter++) {
-    // INFO(
-    //     "Iter %d: t ="
-    //     " (%.4f, %.4f), phi = %.4f",
-    //     iter, t.x, t.y, phi);
+    mat2x2_reset(cov_inv_sum);
+    vec2_reset(&cov_inv_r_sum_x, &cov_inv_r_sum_y);
+    delta_theta_num = delta_theta_den = 0.0f;
 
-    // reset the covariance matrix
-    cov_inv_sum[0] = cov_inv_sum[1] = cov_inv_sum[2] = cov_inv_sum[3] = 0;
-    cov_inv_r_sum.x = cov_inv_r_sum.y = 0;
-
-    // reset the rotation update variables
-    delta_theta_num = 0;
-    delta_theta_den = 0;
-
-    // iterate over all points in the current scan
     for (size_t k = 0; k < 360; k++) {
-      if (current_scan->range[k] <= 1e-6f) {
-        // skip points with no range data
-        continue;
-      }
+      float range = current_scan->range[k];
+      if (range <= 1e-6f) continue;
 
-      point_b = scan_to_point(current_scan, k);
-      rotated_point_b = vec2_rotate(point_b, phi);  // q
-      transformed_point_b = vec2_add(rotated_point_b, t);
+      float bx, by, rx, ry, tx, ty;
+      scan_to_point(current_scan, k, &bx, &by);
 
-      DEBUG(
-          "Scan point %zu: (%.3f, %.3f) → rotated (%.3f, %.3f) "
-          "→ transformed (%.3f, %.3f)",
-          k, point_b.x, point_b.y, rotated_point_b.x, rotated_point_b.y,
-          transformed_point_b.x, transformed_point_b.y);
+      float c = cosf(phi), s = sinf(phi);
+      rx = c * bx - s * by;
+      ry = s * bx + c * by;
+      tx = rx + t_x;
+      ty = ry + t_y;
 
-      // find the closest point in the map
-      uint16_t distance;
-      occupancy_quadtree_t* closest_node = occupancy_quadtree_nearest(
-          map, transformed_point_b.x, transformed_point_b.y, &distance);
-      DEBUG("Scan point %zu: closest node at (%.3f, %.3f) with distance %.3f",
-            k, closest_node ? closest_node->x : 0.0f,
-            closest_node ? closest_node->y : 0.0f, distance);
-      if (!closest_node || distance > nn_outlier_distance) {
-        continue;
-      }
-      vec2_t point_a = {closest_node->x, closest_node->y};
+      uint16_t dist;
+      occupancy_quadtree_t* node =
+          occupancy_quadtree_nearest(map, tx, ty, &dist);
+      if (!node || dist > max_match_dist) continue;
 
-      // DEBUG("Correspondence at scan %zu → map point (%.3f, %.3f)", k,
-      // point_a.x,
-      //       point_a.y);
-      // calculate the covariance for this point
+      float ax = node->x;
+      float ay = node->y;
+
       calc_correspondence_covariance(corresp_cov, current_scan, k, map);
-      calc_noise_covariance(noise_cov, k * PI / 180.0f, current_scan->range[k],
-                            sensor->bearing_error, sensor->range_error);
+      calc_noise_covariance(noise_cov, DEG2RAD(k), range, sensor->bearing_error,
+                            sensor->range_error);
 
-      DEBUG(
-          "Scan %zu: noise_cov = [[%.9f, %.9f], [%.9f, %.9f]], "
-          "corresp_cov = [[%.9f, %.9f], [%.9f, %.9f]]",
-          k, noise_cov[0], noise_cov[1], noise_cov[2], noise_cov[3],
-          corresp_cov[0], corresp_cov[1], corresp_cov[2], corresp_cov[3]);
+      // rotate noise_cov into world frame and add to correspondence
+      float tmp00 = c * noise_cov[0] + -s * noise_cov[2];
+      float tmp01 = c * noise_cov[1] + -s * noise_cov[3];
+      float tmp10 = s * noise_cov[0] + c * noise_cov[2];
+      float tmp11 = s * noise_cov[1] + c * noise_cov[3];
 
-      float c = cosf(phi);
-      float s = sinf(phi);
+      cov[0] = corresp_cov[0] + tmp00 * c + tmp01 * s;
+      cov[1] = corresp_cov[1] + tmp00 * -s + tmp01 * c;
+      cov[2] = corresp_cov[2] + tmp10 * c + tmp11 * s;
+      cov[3] = corresp_cov[3] + tmp10 * -s + tmp11 * c;
 
-      // R * N * R^T
-      float N[2][2], R[2][2];
-      N[0][0] = noise_cov[0];
-      N[0][1] = noise_cov[1];
-      N[1][0] = noise_cov[2];
-      N[1][1] = noise_cov[3];
-      R[0][0] = c;
-      R[0][1] = -s;
-      R[1][0] = s;
-      R[1][1] = c;
-
-      // tmp = R * N
-      float tmp[2][2] = {{R[0][0] * N[0][0] + R[0][1] * N[1][0],
-                          R[0][0] * N[0][1] + R[0][1] * N[1][1]},
-                         {R[1][0] * N[0][0] + R[1][1] * N[1][0],
-                          R[1][0] * N[0][1] + R[1][1] * N[1][1]}};
-
-      // cov = tmp * R^T
-      cov[0] = corresp_cov[0] + tmp[0][0] * R[0][0] + tmp[0][1] * R[0][1];
-      cov[1] = corresp_cov[1] + tmp[0][0] * R[1][0] + tmp[0][1] * R[1][1];
-      cov[2] = corresp_cov[2] + tmp[1][0] * R[0][0] + tmp[1][1] * R[0][1];
-      cov[3] = corresp_cov[3] + tmp[1][0] * R[1][0] + tmp[1][1] * R[1][1];
-
-      DEBUG("Scan %zu: covariance matrix = [[%.9f, %.9f], [%.9f, %.9f]]", k,
-            cov[0], cov[1], cov[2], cov[3]);
-
-      // accumulate the inverse covariance matrix
-      if (!mat2x2_inv(cov, cov_inv)) {
-        ERROR("Failed to invert covariance matrix for scan point %zu", k);
-        continue;
-      }
+      if (!mat2x2_inv(cov, cov_inv)) continue;
       mat2x2_add_inplace(cov_inv_sum, cov_inv);
-      // calculate the difference between the point in the map and the
-      // rotated point
-      vec2_t rk = vec2_sub(point_a, rotated_point_b);  // for translation update
-      // accumulate the inverse covariance times the residual
-      // (residual = point_a - rotated_point_b)
-      cov_inv_r_sum.x += cov_inv[0] * rk.x + cov_inv[1] * rk.y;
-      cov_inv_r_sum.y += cov_inv[2] * rk.x + cov_inv[3] * rk.y;
 
-      DEBUG(
-          "Scan %zu: residual = (%.3f, %.3f), "
-          "cov_inv_r_sum = (%.3f, %.3f)",
-          k, rk.x, rk.y, cov_inv_r_sum.x, cov_inv_r_sum.y);
+      float dx = ax - rx;
+      float dy = ay - ry;
+      cov_inv_r_sum_x += cov_inv[0] * dx + cov_inv[1] * dy;
+      cov_inv_r_sum_y += cov_inv[2] * dx + cov_inv[3] * dy;
 
-      // rotation update
-      vec2_t pk =
-          vec2_sub(point_a, transformed_point_b);  // for rotation update
-      float Jq_x = -rotated_point_b.y;
-      float Jq_y = rotated_point_b.x;
-      float p_dot_Jq = pk.x * cov_inv[0] * Jq_x + pk.x * cov_inv[1] * Jq_y +
-                       pk.y * cov_inv[2] * Jq_x + pk.y * cov_inv[3] * Jq_y;
-      float Jq_P_Jq = Jq_x * (cov_inv[0] * Jq_x + cov_inv[1] * Jq_y) +
-                      Jq_y * (cov_inv[2] * Jq_x + cov_inv[3] * Jq_y);
+      float px = ax - tx;
+      float py = ay - ty;
+      float Jqx = -ry;
+      float Jqy = rx;
+
+      float p_dot_Jq = px * (cov_inv[0] * Jqx + cov_inv[1] * Jqy) +
+                       py * (cov_inv[2] * Jqx + cov_inv[3] * Jqy);
+      float Jq_P_Jq = Jqx * (cov_inv[0] * Jqx + cov_inv[1] * Jqy) +
+                      Jqy * (cov_inv[2] * Jqx + cov_inv[3] * Jqy);
       delta_theta_num += p_dot_Jq;
       delta_theta_den += Jq_P_Jq;
     }
 
-    // update the translation
-    if (!mat2x2_inv(cov_inv_sum, cov_inv_sum_inv)) {
-      ERROR("Failed to invert covariance sum matrix");
-      return false;
-    }
+    if (!mat2x2_inv(cov_inv_sum, cov_inv_sum_inv)) return false;
+    if (fabsf(delta_theta_den) < 1e-6f) return false;
 
-    if (fabs(delta_theta_den) < 1e-6f) {
-      ERROR("Delta theta denominator is too small, skipping rotation update");
-      return false;
-    }
+    float ntx = cov_inv_sum_inv[0] * cov_inv_r_sum_x +
+                cov_inv_sum_inv[1] * cov_inv_r_sum_y;
+    float nty = cov_inv_sum_inv[2] * cov_inv_r_sum_x +
+                cov_inv_sum_inv[3] * cov_inv_r_sum_y;
+    float dtx = ntx - t_x, dty = nty - t_y;
+    t_x = ntx;
+    t_y = nty;
 
-    ntx = cov_inv_sum_inv[0] * cov_inv_r_sum.x +
-          cov_inv_sum_inv[1] * cov_inv_r_sum.y;
-    nty = cov_inv_sum_inv[2] * cov_inv_r_sum.x +
-          cov_inv_sum_inv[3] * cov_inv_r_sum.y;
-
-    dtx = ntx - t.x;  // translation update in x
-    dty = nty - t.y;  // translation update in y
-
-    // update the translation
-    t.x = ntx;
-    t.y = nty;
-
-    // update the rotation
-    dr = delta_theta_num / delta_theta_den;
-
+    float dr = delta_theta_num / delta_theta_den;
     phi = clamp_rotation(phi + dr);
 
     INFO(
-        "Iter %d: t = (%.4f, %.4f), phi = %.4f, "
-        "dtx = %.4f, dty = %.4f, dr = %.4f",
-        iter, t.x, t.y, phi, dtx, dty, dr);
+        "Iter %d: t = (%.4f, %.4f), phi = %.4f, dtx = %.4f, dty = %.4f, dr = "
+        "%.4f",
+        iter, t_x, t_y, phi, dtx, dty, dr);
 
     if (fabsf(dr) < ROTATION_EPSILON && fabsf(dtx) < TRANSLATION_EPSILON &&
         fabsf(dty) < TRANSLATION_EPSILON) {
-      pose_estimate->x = t.x;
-      pose_estimate->y = t.y;
+      pose_estimate->x = t_x;
+      pose_estimate->y = t_y;
       pose_estimate->r = phi;
       INFO("Convergence reached after %d iterations", iter);
       return true;
