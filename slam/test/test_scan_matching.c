@@ -1,10 +1,10 @@
 #include <math.h>
 #include <slam/logging.h>
 #include <slam/scan.h>
-#include <slam/scan_matching.h>
 #include <slam/types.h>
 #include <slam/utils.h>
 #include <slam/viewer.h>
+#include <slam/weighted_scan_matching.h>
 #include <unity/unity.h>
 
 /**
@@ -23,38 +23,37 @@ void generate_gt_scan(scan_t *gt_scan) {
   }
 }
 
-// void test_map_scan_score() {
-//   occupancy_quadtree_t occupancy;
-//   // 5/2^4 = 0.3125
-//   occupancy_quadtree_init(&occupancy, 0, 0, 5.0f, 4);
+/**
+ * @brief Generate a scan from the map at a given pose
+ */
+void generate_scan(const lidar_sensor_t *lidar, occupancy_quadtree_t *map,
+                   const pose_t *pose, scan_t *scan) {
+  scan_reset(scan);
+  for (size_t i = 0; i < 360; i++) {
+    float angle = DEG2RAD(i);
+    float dx = lidar->max_range * cosf(angle);
+    float dy = lidar->max_range * sinf(angle);
 
-//   pose_t robot_pose = {.x = 0.0f, .y = 0.0f, .r = 0.0f};
+    // Transform the point to the world coordinates
+    float x = pose->x + dx * cosf(pose->r) - dy * sinf(pose->r);
+    float y = pose->y + dx * sinf(pose->r) + dy * cosf(pose->r);
 
-//   scan_t scan;
-//   scan_reset(&scan);
+    // Raycast to find the distance to the nearest obstacle
+    float distance;
+    occupancy_quadtree_t *node = occupancy_quadtree_raycast(
+        map, x, y, dx, dy, lidar->max_range, &distance);
 
-//   generate_gt_scan(&scan);
-//   map_add_scan(&occupancy, &scan, &robot_pose, 1.0);
+    if (node) {
+      scan_add(scan, i, distance);
+    } else {
+      scan_add(scan, i, lidar->max_range);
+    }
+  }
+}
 
-//   // use the same ground-truth scan to test the score
-//   float score;
-//   compute_scan_score(&occupancy, &scan, &robot_pose, &score);
-//   INFO("score: %f", score);
-//   // TEST_ASSERT_FLOAT_WITHIN(0.01f, 0.0f, score);
-
-//   slam_viewer_t viewer;
-//   viewer_init(&viewer);
-//   while (!glfwWindowShouldClose(viewer.window)) {
-//     viewer_begin_draw(&viewer);
-//     viewer_draw_scan(&scan, &robot_pose, 1.0f, 0.0f, 0.0f);
-//     viewer_draw_occupancy(&occupancy);
-//     viewer_end_draw(&viewer);
-//   }
-// }
-
-void test_scan_matching_gradient_simple() {
+void test_scan_matching_simple() {
   const uint16_t map_size = 4096;
-  const uint8_t depth = 11;
+  const uint8_t depth = 8;
   const uint8_t leaf_size = map_size >> depth;
 
   INFO("map size: %hu, depth: %d, leaf size: %d", map_size, depth, leaf_size);
@@ -64,128 +63,40 @@ void test_scan_matching_gradient_simple() {
 
   pose_t robot_pose = {.x = leaf_size / 2, .y = leaf_size / 2, .r = 0.0f};
 
-  scan_t scan;
-  scan_reset(&scan);
-  scan_add(&scan, 0, leaf_size * 5.0f);
-
-  map_add_scan(&occupancy, &scan, &robot_pose, 1.0);
-
-  // slam_viewer_t viewer;
-  // viewer_init(&viewer);
-  // while (!glfwWindowShouldClose(viewer.window)) {
-  //   viewer_begin_draw(&viewer);
-  //   viewer_draw_scan(&scan, &robot_pose, 1.0f, 0.0f, 0.0f);
-  //   viewer_draw_occupancy(&occupancy);
-  //   viewer_end_draw(&viewer);
-  // }
-
-  pose_t gradient;
-  float score;
-  scan_matching_gradient(&occupancy, &scan, &robot_pose, 0, &gradient, &score);
-  TEST_ASSERT_EQUAL(0, gradient.x);
-  TEST_ASSERT_EQUAL(0, gradient.y);
-  TEST_ASSERT_FLOAT_WITHIN(1e-9, 0.0f, gradient.r);
-
-  INFO("gradient: %d %d %.9g", gradient.x, gradient.y, gradient.r);
-
-  // the estimated robot pose is moved slightly to the right which means the
-  // scan should be closer to the right edge of the map.
-  // this means the gradient should be negative in the x direction since the
-  // scan should be moved to the left to match the ground truth scan.
-  robot_pose.x = leaf_size * 2;
-  scan_matching_gradient(&occupancy, &scan, &robot_pose, 0, &gradient, &score);
-  TEST_ASSERT_INT_WITHIN(1, -leaf_size * 2, gradient.x);
-  TEST_ASSERT_EQUAL(0.0f, gradient.y);
-  TEST_ASSERT_FLOAT_WITHIN(1e-2, 0.0f, gradient.r);
-
-  robot_pose.x = leaf_size * 3;
-  scan_matching_gradient(&occupancy, &scan, &robot_pose, 0, &gradient, &score);
-  TEST_ASSERT_INT_WITHIN(1, -leaf_size * 2, gradient.x);
-  TEST_ASSERT_EQUAL(0.0f, gradient.y);
-  TEST_ASSERT_FLOAT_WITHIN(1e-2, 0.0f, gradient.r);
-}
-
-void test_scan_matching_gradient() {
-  const uint16_t map_size = 4096;
-  const uint8_t depth = 11;
-  const uint8_t leaf_size = map_size >> depth;
-
-  INFO("map size: %hu, depth: %d, leaf size: %d", map_size, depth, leaf_size);
-
-  occupancy_quadtree_t occupancy;
-  occupancy_quadtree_init(&occupancy, 0, 0, map_size, depth);
-
-  pose_t robot_pose = {.x = 0, .y = 0, .r = 0.0f};
+  lidar_sensor_t lidar;
+  lidar.max_range = 3.0f;
+  lidar.range_error = 5;
+  lidar.bearing_error = 0.001f;
 
   scan_t gt_scan, scan;
   scan_reset(&gt_scan);
   scan_reset(&scan);
-  generate_gt_scan(&gt_scan);
 
+  gt_scan.range[0] = leaf_size * 25.0f;
   map_add_scan(&occupancy, &gt_scan, &robot_pose, 1.0);
 
-  pose_t gradient;
-  float score;
-  scan_matching_gradient(&occupancy, &gt_scan, &robot_pose, 0, &gradient,
-                         &score);
-  TEST_ASSERT_INT_WITHIN(1, 0, gradient.x);
-  TEST_ASSERT_INT_WITHIN(1, 0, gradient.y);
-  TEST_ASSERT_FLOAT_WITHIN(1e-2f, 0.0f, gradient.r);
+  pose_t pose;
+  TEST_ASSERT(
+      scan_matching_match(&gt_scan, &lidar, &occupancy, &robot_pose, &pose));
+  TEST_ASSERT_INT_WITHIN(1, robot_pose.x, pose.x);
+  TEST_ASSERT_FLOAT_WITHIN(1e-3f, robot_pose.y, pose.y);
+  TEST_ASSERT_FLOAT_WITHIN(1e-3f, 0.0f, pose.r);
 
-  INFO("gradient: %d %d %.9g", gradient.x, gradient.y, gradient.r);
+  scan.range[0] = gt_scan.range[0] + leaf_size;
 
-  // the estimated robot pose is moved slightly to the right which means the
-  // scan should be closer to the right edge of the map.
-  // this means the gradient should be negative in the x direction since the
-  // scan should be moved to the left to match the ground truth scan.
-  robot_pose.x = 10;
-  scan_matching_gradient(&occupancy, &gt_scan, &robot_pose, 0, &gradient,
-                         &score);
-  TEST_ASSERT_LESS_THAN(0, gradient.x);
-  TEST_ASSERT_EQUAL(0, gradient.y);
-  TEST_ASSERT_FLOAT_WITHIN(1e-1f, 0.0f, gradient.r);
+  TEST_ASSERT(
+      scan_matching_match(&scan, &lidar, &occupancy, &robot_pose, &pose));
+  TEST_ASSERT_INT_WITHIN(1, robot_pose.x - leaf_size, pose.x);
+  TEST_ASSERT_FLOAT_WITHIN(1e-3f, robot_pose.y, pose.y);
+  TEST_ASSERT_FLOAT_WITHIN(1e-3f, 0.0f, pose.r);
 
-  robot_pose.x = -20;
-  scan_matching_gradient(&occupancy, &gt_scan, &robot_pose, 0, &gradient,
-                         &score);
+  scan.range[0] = gt_scan.range[0] - 2.0f * leaf_size;
 
-  INFO("gradient: %d %d %.9g", gradient.x, gradient.y, gradient.r);
-
-  TEST_ASSERT_GREATER_THAN(0, gradient.x);
-  TEST_ASSERT_EQUAL(0, gradient.y);
-  TEST_ASSERT_FLOAT_WITHIN(1e-1f, 0.0f, gradient.r);
-}
-
-void test_scan_matching() {
-  const uint16_t map_size = 4096;
-  const uint8_t depth = 11;
-
-  occupancy_quadtree_t occupancy;
-  occupancy_quadtree_init(&occupancy, 0, 0, map_size, depth);
-
-  pose_t robot_pose = {.x = 0.0f, .y = 0.0f, .r = 0.0f};
-
-  scan_t gt_scan, scan;
-  scan_reset(&gt_scan);
-  scan_reset(&scan);
-  generate_gt_scan(&gt_scan);
-
-  map_add_scan(&occupancy, &gt_scan, &robot_pose, 1.0);
-
-  pose_t gradient;
-  float score;
-  scan_matching_gradient(&occupancy, &gt_scan, &robot_pose, 0, &gradient,
-                         &score);
-  TEST_ASSERT_INT_WITHIN(1, 0, gradient.x);
-  TEST_ASSERT_INT_WITHIN(1, 0, gradient.y);
-  TEST_ASSERT_FLOAT_WITHIN(1e-1, 0.0f, gradient.r);
-
-  INFO("gradient: %d %d %.9g", gradient.x, gradient.y, gradient.r);
-
-  robot_pose.x = 0.1f;
-  uint16_t res = scan_matching_match(&occupancy, &gt_scan, &robot_pose,
-                                     &gradient, &score, 1, 200);
-  TEST_ASSERT_EQUAL(1, res);
+  TEST_ASSERT(
+      scan_matching_match(&scan, &lidar, &occupancy, &robot_pose, &pose));
+  TEST_ASSERT_INT_WITHIN(1, robot_pose.x + 2.0f * leaf_size, pose.x);
+  TEST_ASSERT_FLOAT_WITHIN(1e-3f, robot_pose.y, pose.y);
+  TEST_ASSERT_FLOAT_WITHIN(1e-3f, 0.0f, pose.r);
 }
 
 void setUp(void) {}
@@ -194,9 +105,7 @@ void tearDown(void) {}
 int main(void) {
   UNITY_BEGIN();
 
-  RUN_TEST(test_scan_matching_gradient_simple);
-  RUN_TEST(test_scan_matching_gradient);
-  RUN_TEST(test_scan_matching);
+  RUN_TEST(test_scan_matching_simple);
 
   UNITY_END();
   return 0;

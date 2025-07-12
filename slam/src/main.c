@@ -1,10 +1,12 @@
+#define _POSIX_C_SOURCE 199309L  // for clock_gettime
 #include <math.h>
 #include <slam/logging.h>
 #include <slam/map.h>
 #include <slam/scan.h>
-#include <slam/scan_matching.h>
 #include <slam/utils.h>
 #include <slam/viewer.h>
+#include <slam/weighted_scan_matching.h>
+#include <time.h>
 
 /**
  * @brief Generate a scan inside a roughly square area with some obstacles in
@@ -19,7 +21,7 @@ void generate_gt_scan(scan_t *gt_scan) {
     float dist_x = fabs(square_half_size / cosf(r));
     float dist_y = fabs(square_half_size / sinf(r));
 
-    gt_scan->range[i] = fmin(dist_x, dist_y) + 150.0f * sinf(4.0f * r);
+    gt_scan->range[i] = fmin(dist_x, dist_y) + 150.0f * sinf(9.0f * r);
   }
 
   // add some random obstacles
@@ -73,18 +75,20 @@ void move(robot_pose_t *state, motion_t *motion) {
 }
 
 int main() {
+  // the distance from the previous update at which the scan matching will
+  // update the pose
+  const uint16_t update_distance = 50;
+  const float update_angle = 0.1f;
+
   slam_viewer_t viewer;
   slam_viewer_init(&viewer);
 
   const uint16_t map_size = 4096;
-  const uint16_t map_depth = 6;
+  const uint16_t map_depth = 8;
   const uint16_t map_leaf_size = map_size / (1 << map_depth);
 
   occupancy_quadtree_t occ;
   occupancy_quadtree_init(&occ, 0, 0, map_size, map_depth);
-
-  const uint16_t scan_matching_min_matches = 3;
-  const uint16_t scan_matching_iterations = 1000;
 
   scan_t gt_scan, scan;
   scan_reset(&gt_scan);
@@ -93,8 +97,8 @@ int main() {
 
   robot_t robot;
   robot.lidar.max_range = 800;
-  robot.lidar.range_error = 0;
-  robot.lidar.bearing_error = 0;
+  robot.lidar.range_error = 5;
+  robot.lidar.bearing_error = 0.001;
 
   robot.state.pose.x = 75;
   robot.state.pose.y = 0;
@@ -105,6 +109,8 @@ int main() {
   gt_state.pose.y = 0;
   gt_state.pose.r = 0;
 
+  pose_t prev_update_pose = robot.state.pose;
+
   // draw ground truth scan
   // slam_viewerbegin_draw(&viewer);
   // slam_viewerdraw_scan(&viewer, &gt_scan, &robot.state.pose, 1, 0, 1);
@@ -112,53 +118,68 @@ int main() {
   // slam_viewerdraw_occupancy(&viewer, &occ);
   // slam_viewerend_draw(&viewer);
 
+  double dt;
+  struct timespec prev_time, current_time;
+  clock_gettime(CLOCK_MONOTONIC, &prev_time);
+
   while (!glfwWindowShouldClose(viewer.window)) {
+    slam_viewer_begin_draw();
+
+    // calculate the time since the last frame
+    clock_gettime(CLOCK_MONOTONIC, &current_time);
+    dt = (current_time.tv_sec - prev_time.tv_sec) +
+         (current_time.tv_nsec - prev_time.tv_nsec) / 1e9;
+    prev_time = current_time;
+
     // process input
-    uint16_t linear_speed = 10;
-    float angular_speed = 0.02;
+    uint16_t linear_speed = 300;  // mm/s
+    float angular_speed = 1.0f;   // rad/s
 
     motion_t gt_motion;
     gt_motion.dx = 0;
     gt_motion.dy = 0;
     gt_motion.dr = 0;
-    gt_motion.error.x = 0;
-    gt_motion.error.y = 0;
-    gt_motion.error.r = 0;
+    gt_motion.error.x = 1;     // mm
+    gt_motion.error.y = 1;     // mm
+    gt_motion.error.r = 0.05;  // rad
 
     motion_t motion;
     motion.dx = 0;
     motion.dy = 0;
     motion.dr = 0;
-    motion.error.x = 0;  // mm
-    motion.error.y = 0;
-    motion.error.r = 0.05;
 
     slam_viewer_key key = slam_viewer_getkey(&viewer);
     switch (key) {
       case slam_viewer_key_up:
-        motion.dx = linear_speed * cos(gt_state.pose.r);
-        motion.dy = linear_speed * sin(gt_state.pose.r);
+        motion.dx = dt * linear_speed * cos(gt_state.pose.r);
+        motion.dy = dt * linear_speed * sin(gt_state.pose.r);
 
-        gt_motion.dx = linear_speed * (1 + random_normalf(0, motion.error.x)) *
+        gt_motion.dx = dt * linear_speed *
+                       (1 + random_normalf(0, gt_motion.error.x)) *
                        cos(gt_state.pose.r);
-        gt_motion.dy = linear_speed * (1 + random_normalf(0, motion.error.y)) *
+        gt_motion.dy = dt * linear_speed *
+                       (1 + random_normalf(0, gt_motion.error.y)) *
                        sin(gt_state.pose.r);
         break;
       case slam_viewer_key_down:
-        motion.dx = -linear_speed * cos(gt_state.pose.r);
-        motion.dy = -linear_speed * sin(gt_state.pose.r);
-        gt_motion.dx = linear_speed * (-1 + random_normalf(0, motion.error.x)) *
+        motion.dx = dt * -linear_speed * cos(gt_state.pose.r);
+        motion.dy = dt * -linear_speed * sin(gt_state.pose.r);
+        gt_motion.dx = dt * linear_speed *
+                       (-1 + random_normalf(0, gt_motion.error.x)) *
                        cos(gt_state.pose.r);
-        gt_motion.dy = linear_speed * (-1 + random_normalf(0, motion.error.y)) *
+        gt_motion.dy = dt * linear_speed *
+                       (-1 + random_normalf(0, gt_motion.error.y)) *
                        sin(gt_state.pose.r);
         break;
       case slam_viewer_key_left:
-        motion.dr = angular_speed;
-        gt_motion.dr = angular_speed * (1 + random_normalf(0, motion.error.r));
+        motion.dr = dt * angular_speed;
+        gt_motion.dr =
+            dt * angular_speed * (1 + random_normalf(0, gt_motion.error.r));
         break;
       case slam_viewer_key_right:
-        motion.dr = -angular_speed;
-        gt_motion.dr = -angular_speed * (1 + random_normalf(0, motion.error.r));
+        motion.dr = dt * -angular_speed;
+        gt_motion.dr =
+            dt * -angular_speed * (1 + random_normalf(0, gt_motion.error.r));
         break;
       default:
         break;
@@ -169,47 +190,60 @@ int main() {
       move(&gt_state, &gt_motion);
       move(&robot.state, &motion);
 
-      scan_reset(&scan);
-      // the scan is generated from the ground truth scan
-      // and moved to the ground truth robot pose
-      generate_noisy_scan(&robot.lidar, &gt_scan, &scan, &gt_state.pose);
+      if ((hypotf(robot.state.pose.x - prev_update_pose.x,
+                  robot.state.pose.y - prev_update_pose.y) >=
+           update_distance) ||
+          (fabsf(robot.state.pose.r - prev_update_pose.r)) >= update_angle) {
+        prev_update_pose = robot.state.pose;
 
-      float entropy = map_entropy(&occ);
-      INFO("occupancy map entropy: %f", entropy);
+        scan_reset(&scan);
+        // the scan is generated from the ground truth scan
+        // and moved to the ground truth robot pose
+        generate_noisy_scan(&robot.lidar, &gt_scan, &scan, &gt_state.pose);
 
-      if (entropy < map_leaf_size * 0.0005f) {
-        INFO("map is empty, skipping scan matching");
-        // update the occupancy grid
-        map_add_scan(&occ, &scan, &robot.state.pose, 1);
-      } else if (scan.hits > 30) {
-        // perform scan matching float score = -INFINITY;
-        pose_t pose_estimate;
-        float score = INFINITY;
-        if (scan_matching_match(&occ, &scan, &robot.state.pose, &pose_estimate,
-                                &score, scan_matching_min_matches,
-                                scan_matching_iterations)) {
-          INFO("scan match score: %f", score);
-          INFO("scan match pose estimate: %d %d %f", pose_estimate.x,
-               pose_estimate.y, pose_estimate.r);
-          robot.state.pose.x = pose_estimate.x;
-          robot.state.pose.y = pose_estimate.y;
-          robot.state.pose.r = pose_estimate.r;
+        double entropy = map_entropy(&occ);
+        INFO("occupancy map entropy: %f", entropy);
 
+        if (entropy < map_leaf_size * 0.0001f) {
+          INFO("map is empty, skipping scan matching");
           // update the occupancy grid
-          map_add_scan(&occ, &scan, &robot.state.pose, (int32_t)score);
-        }
-      }
+          map_add_scan(&occ, &scan, &robot.state.pose, 1.0);
+        } else if (scan.hits > 5) {
+          pose_t pose_estimate;
+          if (scan_matching_match(&scan, &robot.lidar, &occ, &robot.state.pose,
+                                  &pose_estimate)) {
+            INFO("scan match pose estimate: %d %d %f", pose_estimate.x,
+                 pose_estimate.y, pose_estimate.r);
+            robot.state.pose.x = pose_estimate.x;
+            robot.state.pose.y = pose_estimate.y;
+            robot.state.pose.r = pose_estimate.r;
 
-      INFO("ground truth pose: %d %d %f", gt_state.pose.x, gt_state.pose.y,
-           gt_state.pose.r);
-      INFO("robot pose: %d %d %f", robot.state.pose.x, robot.state.pose.y,
-           robot.state.pose.r);
+            // update the occupancy grid
+            map_add_scan(&occ, &scan, &robot.state.pose, 10);
+          }
+        }
+
+        INFO("ground truth pose: %d %d %f", gt_state.pose.x, gt_state.pose.y,
+             gt_state.pose.r);
+        INFO("robot pose: %d %d %f", robot.state.pose.x, robot.state.pose.y,
+             robot.state.pose.r);
+
+        slam_viewer_draw_scan(&scan, &gt_state.pose, 0, 0, 1);
+      }
     }
 
     // draw
-    slam_viewer_begin_draw();
-    slam_viewer_draw_all(&occ, &robot.state, &gt_state, &scan);
+    slam_viewer_draw_occupancy(&occ);
+    slam_viewer_draw_robot(&robot.state.pose, 0, 1, 0, 1);
+    slam_viewer_draw_robot(&gt_state.pose, 0, 1, 0, 0.5);
     slam_viewer_end_draw(&viewer);
+
+    // sleep
+    struct timespec ts;
+    ts.tv_sec = 0;
+    ts.tv_nsec =
+        (1.0 / 60.0) * 1e9 - (current_time.tv_nsec - prev_time.tv_nsec);
+    nanosleep(&ts, NULL);
   }
 
   return 0;
