@@ -31,7 +31,7 @@ endif()
 add_library(slam STATIC 
     src/map.c
     src/occupancy_quadtree.c
-    src/scan_matching.c
+    src/weighted_scan_matching.c
     src/scan.c
     src/utils.c
     src/default_logging.c

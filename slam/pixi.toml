@@ -1,0 +1,18 @@
+[workspace]
+authors = ["Harry Jacobs <harry.jacobs@vaarst.com>"]
+channels = ["conda-forge"]
+name = "libmicroslam"
+platforms = ["linux-64"]
+version = "0.1.0"
+
+[tasks]
+build = "cmake -B build -S . -G Ninja && cmake --build build"
+test = "cd build && ctest --output-on-failure"
+app = "build/slam_test_app"
+
+[dependencies]
+cmake = "*"
+ninja = "*"
+gcc = "*"
+glfw = ">=3"
+mesa-libgl-devel-cos7-x86_64 = "*"

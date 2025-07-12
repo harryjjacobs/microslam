@@ -44,7 +44,9 @@ typedef struct motion_t {
   uint16_t dx;
   uint16_t dy;
   float dr;
-  pose_t error;
+  float error_x;  // mm
+  float error_y;  // mm
+  float error_r;  // rad
 } motion_t;
 
 typedef enum {
@@ -63,6 +65,7 @@ typedef struct occupancy_quadtree_t {
   uint8_t max_depth;
   uint8_t occupancy;
 
+  // TODO: find a way of referencing the children in a more compact way.
   struct occupancy_quadtree_t *children[4];
 } occupancy_quadtree_t;
 

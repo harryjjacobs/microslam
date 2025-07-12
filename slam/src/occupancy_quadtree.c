@@ -54,7 +54,6 @@ occupancy_quadtree_t *occupancy_quadtree_update(occupancy_quadtree_t *quadtree,
 
   // this is a leaf node, stop dividing and update the log odds
   if (quadtree->depth >= quadtree->max_depth) {
-    // quadtree->log_odds += log_odds;  // TODO: clamp log odds?
     quadtree->log_odds = CLAMP(quadtree->log_odds + log_odds, -1000, 1000);
     // update the occupancy
     if (quadtree->log_odds > 0) {
@@ -94,9 +93,8 @@ occupancy_quadtree_t *occupancy_quadtree_update(occupancy_quadtree_t *quadtree,
   }
 
   if (quadtree->children[quad_idx]->occupancy == OCCUPANCY_FREE) {
-    // FIXME: this seems to occur more than it should, investigate
-    // DEBUG("removing free leaf node at (%d, %d)",
-    //       quadtree->children[quad_idx]->x, quadtree->children[quad_idx]->y);
+    TRACE("removing free leaf node at (%f, %f)",
+          quadtree->children[quad_idx]->x, quadtree->children[quad_idx]->y);
     // child node is free, free the memory
     free(quadtree->children[quad_idx]);
     quadtree->children[quad_idx] = NULL;

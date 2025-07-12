@@ -1,2 +1,5 @@
 build/
 .vscode/
+
+# pixi environments
+.pixi
