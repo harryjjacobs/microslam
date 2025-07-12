@@ -65,6 +65,7 @@ typedef struct occupancy_quadtree_t {
   uint8_t max_depth;
   uint8_t occupancy;
 
+  // TODO: find a way of referencing the children in a more compact way.
   struct occupancy_quadtree_t *children[4];
 } occupancy_quadtree_t;
 
