@@ -139,9 +139,9 @@ int main() {
     gt_motion.dx = 0;
     gt_motion.dy = 0;
     gt_motion.dr = 0;
-    gt_motion.error.x = 1;     // mm
-    gt_motion.error.y = 1;     // mm
-    gt_motion.error.r = 0.05;  // rad
+    gt_motion.error_x = 0.5f;  // mm
+    gt_motion.error_y = 0.5f;  // mm
+    gt_motion.error_r = 0.05;  // rad
 
     motion_t motion;
     motion.dx = 0;
@@ -155,31 +155,31 @@ int main() {
         motion.dy = dt * linear_speed * sin(gt_state.pose.r);
 
         gt_motion.dx = dt * linear_speed *
-                       (1 + random_normalf(0, gt_motion.error.x)) *
+                       (1 + random_normalf(0, gt_motion.error_x)) *
                        cos(gt_state.pose.r);
         gt_motion.dy = dt * linear_speed *
-                       (1 + random_normalf(0, gt_motion.error.y)) *
+                       (1 + random_normalf(0, gt_motion.error_y)) *
                        sin(gt_state.pose.r);
         break;
       case slam_viewer_key_down:
         motion.dx = dt * -linear_speed * cos(gt_state.pose.r);
         motion.dy = dt * -linear_speed * sin(gt_state.pose.r);
         gt_motion.dx = dt * linear_speed *
-                       (-1 + random_normalf(0, gt_motion.error.x)) *
+                       (-1 + random_normalf(0, gt_motion.error_x)) *
                        cos(gt_state.pose.r);
         gt_motion.dy = dt * linear_speed *
-                       (-1 + random_normalf(0, gt_motion.error.y)) *
+                       (-1 + random_normalf(0, gt_motion.error_y)) *
                        sin(gt_state.pose.r);
         break;
       case slam_viewer_key_left:
         motion.dr = dt * angular_speed;
         gt_motion.dr =
-            dt * angular_speed * (1 + random_normalf(0, gt_motion.error.r));
+            dt * angular_speed * (1 + random_normalf(0, gt_motion.error_r));
         break;
       case slam_viewer_key_right:
         motion.dr = dt * -angular_speed;
         gt_motion.dr =
-            dt * -angular_speed * (1 + random_normalf(0, gt_motion.error.r));
+            dt * -angular_speed * (1 + random_normalf(0, gt_motion.error_r));
         break;
       default:
         break;

@@ -44,7 +44,9 @@ typedef struct motion_t {
   uint16_t dx;
   uint16_t dy;
   float dr;
-  pose_t error;
+  float error_x;  // mm
+  float error_y;  // mm
+  float error_r;  // rad
 } motion_t;
 
 typedef enum {
