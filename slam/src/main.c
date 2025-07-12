@@ -85,7 +85,7 @@ int main() {
 
   const uint16_t map_size = 4096;
   const uint16_t map_depth = 8;
-  const uint16_t map_leaf_size = map_size / (1 << map_depth);
+  const uint16_t map_leaf_size = map_size >> map_depth;
 
   occupancy_quadtree_t occ;
   occupancy_quadtree_init(&occ, 0, 0, map_size, map_depth);
@@ -96,7 +96,7 @@ int main() {
   generate_gt_scan(&gt_scan);
 
   robot_t robot;
-  robot.lidar.max_range = 800;
+  robot.lidar.max_range = 1000;
   robot.lidar.range_error = 5;
   robot.lidar.bearing_error = 0.001;
 
