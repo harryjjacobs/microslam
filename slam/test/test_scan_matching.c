@@ -39,7 +39,7 @@ void generate_scan(const lidar_sensor_t *lidar, occupancy_quadtree_t *map,
     float y = pose->y + dx * sinf(pose->r) + dy * cosf(pose->r);
 
     // Raycast to find the distance to the nearest obstacle
-    float distance;
+    uint16_t distance;
     occupancy_quadtree_t *node = occupancy_quadtree_raycast(
         map, x, y, dx, dy, lidar->max_range, &distance);
 
