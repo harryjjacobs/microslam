@@ -34,6 +34,7 @@ add_library(slam STATIC
     src/weighted_scan_matching.c
     src/scan.c
     src/utils.c
+    src/system.c
     src/default_logging.c
     src/serialisation.c
     thirdparty/log/log.c

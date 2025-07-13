@@ -56,6 +56,8 @@ typedef enum {
 } occupancy_state_t;
 
 typedef struct occupancy_quadtree_t {
+  uint16_t id;
+
   int16_t x;
   int16_t y;
   uint16_t size;
@@ -68,5 +70,24 @@ typedef struct occupancy_quadtree_t {
   // TODO: find a way of referencing the children in a more compact way.
   struct occupancy_quadtree_t *children[4];
 } occupancy_quadtree_t;
+
+typedef struct {
+  uint16_t key_pose_distance;  // distance in mm to consider a new key pose
+  float key_pose_angle;        // angle in radians to consider a new key pose
+} slam_system_params_t;
+
+typedef struct {
+  slam_system_params_t params;  // parameters for the SLAM system
+
+  robot_pose_t pose;  // current pose of the robot
+
+  scan_t scan;  // last scan received from the lidar
+
+  occupancy_quadtree_t map;  // occupancy quadtree map of the environment
+
+  robot_pose_t *key_poses;      // history of key poses for localisation
+  uint16_t key_poses_capacity;  // capacity of the key poses array
+  uint16_t key_pose_id;         // unique identifier of the current key pose
+} slam_system_t;
 
 #endif /* SLAM_TYPES_H_ */
