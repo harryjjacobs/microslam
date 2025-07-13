@@ -17,6 +17,6 @@
 bool scan_matching_match(const scan_t* current_scan,
                          const lidar_sensor_t* sensor,
                          occupancy_quadtree_t* map, const pose_t* initial_guess,
-                         pose_t* pose_estimate);
+                         pose_t* pose_estimate, uint16_t max_iterations);
 
 #endif /* SLAM_SCAN_MATCHING_H_ */
