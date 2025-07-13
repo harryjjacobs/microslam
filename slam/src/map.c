@@ -5,11 +5,10 @@
 #include <stdlib.h>
 
 void map_add_scan(occupancy_quadtree_t *occupancy, scan_t *scan, pose_t *pose,
-                  int32_t weight) {
+                  uint16_t id, int32_t weight) {
   // step is the leaf size divided by 4 (just needs to be small enough
   // to not miss any cells)
-  const uint16_t step =
-      MAX(1, (occupancy->size / (1 << occupancy->max_depth)) >> 1);
+  const uint16_t step = MAX(1, occupancy->size >> (occupancy->max_depth + 1));
   float r, dx, dy;
   for (uint16_t i = 0; i < 360; i++) {
     if (scan->range[i] < 1e-6) {
@@ -23,7 +22,7 @@ void map_add_scan(occupancy_quadtree_t *occupancy, scan_t *scan, pose_t *pose,
       dx = d * cos(r);
       dy = d * sin(r);
       occupancy_quadtree_update(occupancy, pose->x + (int16_t)dx,
-                                pose->y + (int16_t)dy, LOG_ODDS_FREE);
+                                pose->y + (int16_t)dy, id, LOG_ODDS_FREE);
     }
   }
 
@@ -40,7 +39,7 @@ void map_add_scan(occupancy_quadtree_t *occupancy, scan_t *scan, pose_t *pose,
     dy = scan->range[i] * sin(r);
 
     // update the endpoint of the scan as occupied
-    occupancy_quadtree_update(occupancy, pose->x + dx, pose->y + dy,
+    occupancy_quadtree_update(occupancy, pose->x + dx, pose->y + dy, id,
                               LOG_ODDS_OCCUPIED * weight);
   }
 }

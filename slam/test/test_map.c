@@ -146,13 +146,13 @@ void test_mapping_occupancy_visualisation() {
   generate_gt_scan(&gt_scan);
 
   generate_noisy_scan(&lidar, &gt_scan, &scan);
-  map_add_scan(&occupancy, &scan, &robot_pose, 1.0);
+  map_add_scan(&occupancy, &scan, &robot_pose, 0, 1.0);
 
   generate_noisy_scan(&lidar, &gt_scan, &scan);
-  map_add_scan(&occupancy, &scan, &robot_pose, 1.0);
+  map_add_scan(&occupancy, &scan, &robot_pose, 1, 1.0);
 
   generate_noisy_scan(&lidar, &gt_scan, &scan);
-  map_add_scan(&occupancy, &scan, &robot_pose, 1.0);
+  map_add_scan(&occupancy, &scan, &robot_pose, 2, 1.0);
 
   slam_viewer_t viewer;
   slam_viewer_init(&viewer);

@@ -111,13 +111,6 @@ int main() {
 
   pose_t prev_update_pose = robot.state.pose;
 
-  // draw ground truth scan
-  // slam_viewerbegin_draw(&viewer);
-  // slam_viewerdraw_scan(&viewer, &gt_scan, &robot.state.pose, 1, 0, 1);
-  // map_add_scan(&occ, &gt_scan, &robot.state.pose, 1.0);
-  // slam_viewerdraw_occupancy(&viewer, &occ);
-  // slam_viewerend_draw(&viewer);
-
   double dt;
   struct timespec prev_time, current_time;
   clock_gettime(CLOCK_MONOTONIC, &prev_time);
@@ -207,11 +200,11 @@ int main() {
         if (entropy < map_leaf_size * 0.0001f) {
           INFO("map is empty, skipping scan matching");
           // update the occupancy grid
-          map_add_scan(&occ, &scan, &robot.state.pose, 1.0);
+          map_add_scan(&occ, &scan, &robot.state.pose, 0, 1.0);
         } else if (scan.hits > 5) {
           pose_t pose_estimate;
           if (scan_matching_match(&scan, &robot.lidar, &occ, &robot.state.pose,
-                                  &pose_estimate)) {
+                                  &pose_estimate, 100)) {
             INFO("scan match pose estimate: %d %d %f", pose_estimate.x,
                  pose_estimate.y, pose_estimate.r);
             robot.state.pose.x = pose_estimate.x;
@@ -219,7 +212,7 @@ int main() {
             robot.state.pose.r = pose_estimate.r;
 
             // update the occupancy grid
-            map_add_scan(&occ, &scan, &robot.state.pose, 10);
+            map_add_scan(&occ, &scan, &robot.state.pose, 0, 10);
           }
         }
 

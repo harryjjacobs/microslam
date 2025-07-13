@@ -115,7 +115,7 @@ static void calc_correspondence_covariance(float cov[4], const scan_t* scan,
 bool scan_matching_match(const scan_t* current_scan,
                          const lidar_sensor_t* sensor,
                          occupancy_quadtree_t* map, const pose_t* initial_guess,
-                         pose_t* pose_estimate) {
+                         pose_t* pose_estimate, uint16_t max_iterations) {
   // From the papers: Weighted Range Sensor Matching Algorithms for Mobile
   // Robot Displacement Estimation (2002) and Robust Weighted Scan Matching
   // with Quadtrees (2009)
@@ -132,7 +132,7 @@ bool scan_matching_match(const scan_t* current_scan,
   float cov_inv_r_sum_x, cov_inv_r_sum_y;
   float delta_theta_num, delta_theta_den;
 
-  for (int iter = 0; iter < 100; iter++) {
+  for (int iter = 0; iter < max_iterations; iter++) {
     mat2x2_reset(cov_inv_sum);
     vec2_reset(&cov_inv_r_sum_x, &cov_inv_r_sum_y);
     delta_theta_num = delta_theta_den = 0.0f;

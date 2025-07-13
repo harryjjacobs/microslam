@@ -61,10 +61,10 @@ void test_write_read_header(void) {
 void test_serialise_deserialise_occupancy_quadtree(void) {
   occupancy_quadtree_t quadtree;
   occupancy_quadtree_init(&quadtree, 0, 0, 16, 3);  // leaf size = 2
-  occupancy_quadtree_update(&quadtree, -7.5, -7.5, 1);
-  occupancy_quadtree_update(&quadtree, 7.5, 7.5, 2);
-  occupancy_quadtree_update(&quadtree, -7.5, 7.5, 3);
-  occupancy_quadtree_update(&quadtree, 5.5, -7.5, 4);
+  occupancy_quadtree_update(&quadtree, -7.5, -7.5, 0, 1);
+  occupancy_quadtree_update(&quadtree, 7.5, 7.5, 0, 2);
+  occupancy_quadtree_update(&quadtree, -7.5, 7.5, 0, 3);
+  occupancy_quadtree_update(&quadtree, 5.5, -7.5, 0, 4);
 
   serialisation_buffer_t serialised_data;
   serialisation_buffer_init(&serialised_data);

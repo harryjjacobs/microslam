@@ -17,6 +17,7 @@ void occupancy_quadtree_init(occupancy_quadtree_t *quadtree, int16_t x,
     exit(EXIT_FAILURE);
   }
 
+  quadtree->id = 0;
   quadtree->occupancy = OCCUPANCY_FREE;
   quadtree->max_depth = max_depth;
   quadtree->depth = 0;
@@ -40,7 +41,7 @@ void occupancy_quadtree_clear(occupancy_quadtree_t *quadtree) {
 
 occupancy_quadtree_t *occupancy_quadtree_update(occupancy_quadtree_t *quadtree,
                                                 int16_t x, int16_t y,
-                                                int32_t log_odds) {
+                                                uint16_t id, int32_t log_odds) {
   // outside the bounds of the quadtree
   if (x < (quadtree->x - (quadtree->size >> 1)) ||
       x > (quadtree->x + (quadtree->size >> 1)) ||
@@ -52,9 +53,10 @@ occupancy_quadtree_t *occupancy_quadtree_update(occupancy_quadtree_t *quadtree,
     return NULL;
   }
 
-  // this is a leaf node, stop dividing and update the log odds
+  // this is a leaf node, stop dividing and update the log odds and ID
   if (quadtree->depth >= quadtree->max_depth) {
     quadtree->log_odds = CLAMP(quadtree->log_odds + log_odds, -1000, 1000);
+    quadtree->id = id;
     // update the occupancy
     if (quadtree->log_odds > 0) {
       quadtree->occupancy = OCCUPANCY_OCCUPIED;
@@ -86,8 +88,8 @@ occupancy_quadtree_t *occupancy_quadtree_update(occupancy_quadtree_t *quadtree,
     quadtree->children[quad_idx]->depth = quadtree->depth + 1;
   }
 
-  occupancy_quadtree_t *leaf =
-      occupancy_quadtree_update(quadtree->children[quad_idx], x, y, log_odds);
+  occupancy_quadtree_t *leaf = occupancy_quadtree_update(
+      quadtree->children[quad_idx], x, y, id, log_odds);
   if (leaf == NULL) {
     ERROR("unexpected NULL occurred when updating quadtree");
   }

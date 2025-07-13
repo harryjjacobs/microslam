@@ -73,11 +73,11 @@ void test_scan_matching_simple() {
   scan_reset(&scan);
 
   gt_scan.range[0] = leaf_size * 25.0f;
-  map_add_scan(&occupancy, &gt_scan, &robot_pose, 1.0);
+  map_add_scan(&occupancy, &gt_scan, &robot_pose, 0, 1.0);
 
   pose_t pose;
-  TEST_ASSERT(
-      scan_matching_match(&gt_scan, &lidar, &occupancy, &robot_pose, &pose));
+  TEST_ASSERT(scan_matching_match(&gt_scan, &lidar, &occupancy, &robot_pose,
+                                  &pose, 100));
   TEST_ASSERT_INT_WITHIN(1, robot_pose.x, pose.x);
   TEST_ASSERT_FLOAT_WITHIN(1e-3f, robot_pose.y, pose.y);
   TEST_ASSERT_FLOAT_WITHIN(1e-3f, 0.0f, pose.r);
@@ -85,7 +85,7 @@ void test_scan_matching_simple() {
   scan.range[0] = gt_scan.range[0] + leaf_size;
 
   TEST_ASSERT(
-      scan_matching_match(&scan, &lidar, &occupancy, &robot_pose, &pose));
+      scan_matching_match(&scan, &lidar, &occupancy, &robot_pose, &pose, 100));
   TEST_ASSERT_INT_WITHIN(1, robot_pose.x - leaf_size, pose.x);
   TEST_ASSERT_FLOAT_WITHIN(1e-3f, robot_pose.y, pose.y);
   TEST_ASSERT_FLOAT_WITHIN(1e-3f, 0.0f, pose.r);
@@ -93,7 +93,7 @@ void test_scan_matching_simple() {
   scan.range[0] = gt_scan.range[0] - 2.0f * leaf_size;
 
   TEST_ASSERT(
-      scan_matching_match(&scan, &lidar, &occupancy, &robot_pose, &pose));
+      scan_matching_match(&scan, &lidar, &occupancy, &robot_pose, &pose, 100));
   TEST_ASSERT_INT_WITHIN(1, robot_pose.x + 2.0f * leaf_size, pose.x);
   TEST_ASSERT_FLOAT_WITHIN(1e-3f, robot_pose.y, pose.y);
   TEST_ASSERT_FLOAT_WITHIN(1e-3f, 0.0f, pose.r);

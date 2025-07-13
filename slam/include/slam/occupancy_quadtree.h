@@ -47,12 +47,14 @@ void occupancy_quadtree_clear(occupancy_quadtree_t *quadtree);
  * @param quadtree The quadtree to update.
  * @param x The x coordinate of the measurement.
  * @param y
+ * @param id The unique identifier for the measurement. Leaf nodes in the
+ * quadtree will store this ID.
  * @param log_odds The log odds value to update the quadtree with. This is a
  * @return occupancy_quadtree_t*
  */
 occupancy_quadtree_t *occupancy_quadtree_update(occupancy_quadtree_t *quadtree,
                                                 int16_t x, int16_t y,
-                                                int32_t log_odds);
+                                                uint16_t id, int32_t log_odds);
 
 occupancy_quadtree_t *occupancy_quadtree_find(occupancy_quadtree_t *quadtree,
                                               int16_t x, int16_t y);
