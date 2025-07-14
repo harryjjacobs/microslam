@@ -13,3 +13,7 @@ void scan_add(scan_t *scan, uint16_t bearing, uint16_t range) {
     scan->hits++;
   }
 }
+
+bool scan_valid(const scan_t *scan, int index) {
+  return scan->range[index] > 1e-6f;
+}
