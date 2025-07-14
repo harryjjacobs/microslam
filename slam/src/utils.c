@@ -137,10 +137,18 @@ uint8_t ray_intersects_aabb(int16_t aabb_min_x, int16_t aabb_min_y,
                             int16_t ray_origin_x, int16_t ray_origin_y,
                             int16_t ray_direction_x, int16_t ray_direction_y,
                             uint16_t *t_out) {
-  float tx1 = (aabb_min_x - ray_origin_x) / ray_direction_x,
-        tx2 = (aabb_max_x - ray_origin_x) / ray_direction_x;
-  float ty1 = (aabb_min_y - ray_origin_y) / ray_direction_y,
-        ty2 = (aabb_max_y - ray_origin_y) / ray_direction_y;
+  float tx1 = ray_direction_x != 0
+                  ? (aabb_min_x - ray_origin_x) / ray_direction_x
+                  : -INFINITY,
+        tx2 = ray_direction_x != 0
+                  ? (aabb_max_x - ray_origin_x) / ray_direction_x
+                  : INFINITY;
+  float ty1 = ray_direction_y != 0
+                  ? (aabb_min_y - ray_origin_y) / ray_direction_y
+                  : -INFINITY,
+        ty2 = ray_direction_y != 0
+                  ? (aabb_max_y - ray_origin_y) / ray_direction_y
+                  : INFINITY;
 
   float tmin = fmax(fmin(tx1, tx2), fmin(ty1, ty2));
   float tmax = fmin(fmax(tx1, tx2), fmax(ty1, ty2));
