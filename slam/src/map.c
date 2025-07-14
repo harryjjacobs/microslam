@@ -1,5 +1,6 @@
 #include <math.h>
 #include <slam/map.h>
+#include <slam/scan.h>
 #include <slam/utils.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -11,7 +12,7 @@ void map_add_scan(occupancy_quadtree_t *occupancy, scan_t *scan, pose_t *pose,
   const uint16_t step = MAX(1, occupancy->size >> (occupancy->max_depth + 1));
   float r, dx, dy;
   for (uint16_t i = 0; i < 360; i++) {
-    if (scan->range[i] < 1e-6) {
+    if (!scan_valid(scan, i)) {
       continue;
     }
 
@@ -30,7 +31,7 @@ void map_add_scan(occupancy_quadtree_t *occupancy, scan_t *scan, pose_t *pose,
   // we do this as a separate step to avoid overwriting the occupied cells
   // with free cells from nearby rays that hit further away
   for (uint16_t i = 0; i < 360; i++) {
-    if (scan->range[i] < 1e-6) {
+    if (!scan_valid(scan, i)) {
       continue;
     }
 
