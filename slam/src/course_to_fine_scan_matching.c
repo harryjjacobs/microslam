@@ -6,11 +6,11 @@
 #include "slam/utils.h"
 
 float evaluate_scan_match(const scan_t* scan, occupancy_quadtree_t* map,
-                          pose_t pose, uint8_t depth);
+                          uint16_t min_id, pose_t pose, uint8_t depth);
 
 bool course_to_fine_scan_matching_match(const scan_t* scan,
-                                        const lidar_sensor_t* sensor,
                                         occupancy_quadtree_t* map,
+                                        uint16_t max_id,
                                         const robot_pose_t* initial_guess,
                                         pose_t* pose_estimate) {
   const uint16_t map_min_resolution = map->size >> map->max_depth;
@@ -48,7 +48,7 @@ bool course_to_fine_scan_matching_match(const scan_t* scan,
           };
 
           float score =
-              evaluate_scan_match(scan, map, candidate, (uint8_t)level);
+              evaluate_scan_match(scan, map, max_id, candidate, (uint8_t)level);
 
           if (score > best_score) {
             best_score = score;
@@ -76,7 +76,7 @@ bool course_to_fine_scan_matching_match(const scan_t* scan,
 }
 
 float evaluate_scan_match(const scan_t* scan, occupancy_quadtree_t* map,
-                          pose_t pose, uint8_t depth) {
+                          uint16_t max_id, pose_t pose, uint8_t depth) {
   const uint16_t max_distance = map->size >> depth;
 
   float score = 0.0f;
@@ -92,7 +92,7 @@ float evaluate_scan_match(const scan_t* scan, occupancy_quadtree_t* map,
     uint16_t distance;
     occupancy_quadtree_t* node =
         occupancy_quadtree_nearest(map, x, y, &distance);
-    if (node != NULL && distance < max_distance) {
+    if (node != NULL && node->id <= max_id && distance < max_distance) {
       score += 1.0f - (float)distance / max_distance;
     }
   }
