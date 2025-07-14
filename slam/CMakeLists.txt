@@ -32,6 +32,7 @@ add_library(slam STATIC
     src/map.c
     src/occupancy_quadtree.c
     src/weighted_scan_matching.c
+    src/course_to_fine_scan_matching.c
     src/scan.c
     src/utils.c
     src/system.c

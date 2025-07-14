@@ -1,0 +1,23 @@
+/*
+ * scan_matching.h
+ *
+ *  Created on: Mar 5, 2024
+ *      Author: harryjjacobs
+ */
+
+#ifndef SLAM_COURSE_TO_FINE_SCAN_MATCHING_H_
+#define SLAM_COURSE_TO_FINE_SCAN_MATCHING_H_
+
+#include <stdbool.h>
+
+#include "map.h"
+#include "scan.h"
+#include "types.h"
+
+bool course_to_fine_scan_matching_match(const scan_t* scan,
+                                        const lidar_sensor_t* sensor,
+                                        occupancy_quadtree_t* map,
+                                        const robot_pose_t* initial_guess,
+                                        pose_t* pose_estimate);
+
+#endif /* SLAM_SCAN_MATCHING_H_ */

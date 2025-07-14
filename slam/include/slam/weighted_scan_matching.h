@@ -5,8 +5,8 @@
  *      Author: harryjjacobs
  */
 
-#ifndef SLAM_SCAN_MATCHING_H_
-#define SLAM_SCAN_MATCHING_H_
+#ifndef SLAM_WEIGHTED_SCAN_MATCHING_H_
+#define SLAM_WEIGHTED_SCAN_MATCHING_H_
 
 #include <stdbool.h>
 
@@ -19,4 +19,4 @@ bool scan_matching_match(const scan_t* current_scan,
                          occupancy_quadtree_t* map, const pose_t* initial_guess,
                          pose_t* pose_estimate, uint16_t max_iterations);
 
-#endif /* SLAM_SCAN_MATCHING_H_ */
+#endif
