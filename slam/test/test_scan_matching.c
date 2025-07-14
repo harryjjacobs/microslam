@@ -193,10 +193,6 @@ void test_course_to_fine_scan_matching() {
   scan_reset(&gt_scan);
   scan_reset(&scan);
 
-  slam_viewer_t viewer;
-  slam_viewer_init(&viewer);
-  slam_viewer_begin_draw();
-
   generate_room_scan(&gt_scan, 0, 0, 0, 1500);
   map_add_scan(&occupancy, &gt_scan, &gt_pose, 0, 1.0);
 
@@ -273,10 +269,6 @@ void test_course_to_fine_scan_matching_max_id() {
   scan_reset(&old_scan);
   scan_reset(&new_scan);
 
-  slam_viewer_t viewer;
-  slam_viewer_init(&viewer);
-  slam_viewer_begin_draw();
-
   pose_t old_pose = {.x = leaf_size / 2, .y = leaf_size / 2, .r = 0.0f};
   generate_wall_scan(&old_scan, old_pose.x, old_pose.y, old_pose.r, 500, -1000,
                      1000);
@@ -286,8 +278,6 @@ void test_course_to_fine_scan_matching_max_id() {
   pose_t new_pose_gt = {.x = leaf_size / 2, .y = leaf_size / 2, .r = 0.0f};
   generate_wall_scan(&new_scan, new_pose_gt.x, new_pose_gt.y, new_pose_gt.r,
                      500, -1000, 1000);
-
-  // slam_viewer_wait(&viewer);
 
   // the new pose is translated from the ground truth to
   // simulate drift of the robot
@@ -330,8 +320,8 @@ void tearDown(void) {}
 int main(void) {
   UNITY_BEGIN();
 
-  // RUN_TEST(test_weighted_scan_matching_simple);
-  // RUN_TEST(test_course_to_fine_scan_matching);
+  RUN_TEST(test_weighted_scan_matching_simple);
+  RUN_TEST(test_course_to_fine_scan_matching);
   RUN_TEST(test_course_to_fine_scan_matching_max_id);
 
   UNITY_END();
