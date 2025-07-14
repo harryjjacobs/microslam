@@ -18,15 +18,11 @@ static void robot_pose_init(robot_pose_t *pose);
 static void map_init(occupancy_quadtree_t *map);
 static bool should_add_key_pose(slam_system_t *system, pose_t *pose);
 static void add_key_pose(slam_system_t *system, robot_pose_t *pose);
-
-static slam_localisation_result_t localise(occupancy_quadtree_t *map,
-                                           scan_t *scan, pose_t *current_pose,
-                                           pose_t *pose_estimate);
+static slam_localisation_result_t localise(slam_system_t *system, scan_t *scan);
 
 void slam_system_init(slam_system_t *state) {
   robot_pose_init(&state->pose);
   map_init(&state->map);
-  scan_reset(&state->scan);
 
   state->key_pose_id = 0;
   state->key_poses = NULL;
@@ -44,8 +40,7 @@ void slam_system_process(slam_system_t *system, pose_t *odometry,
   if (should_add_key_pose(system, &system->pose.pose)) {
     add_key_pose(system, &system->pose);
 
-    slam_localisation_result_t localisation_result =
-        localise(&system->map, scan, &system->pose.pose, &system->pose.pose);
+    slam_localisation_result_t localisation_result = localise(system, scan);
 
     const float certainty =
         1.0f / (system->pose.error.x * system->pose.error.x +
@@ -133,19 +128,20 @@ static void add_key_pose(slam_system_t *system, robot_pose_t *pose) {
        pose->pose.x, pose->pose.y, pose->pose.r);
 }
 
-static slam_localisation_result_t localise(occupancy_quadtree_t *map,
-                                           scan_t *scan, pose_t *current_pose,
-                                           pose_t *pose_estimate) {
+static slam_localisation_result_t localise(slam_system_t *system,
+                                           scan_t *scan) {
   // if not enough data to localise yet, just add the scan to the map
-  float entropy = map_entropy(map);
+  float entropy = map_entropy(&system->map);
   if (entropy < 0.0005f * MAP_LEAF_SIZE) {
     return LOCALISATION_INITIALISING;
   }
 
-  float score;
-  if (scan_matching_match(map, scan, current_pose, pose_estimate, &score,
-                          100)) {
-    *current_pose = *pose_estimate;
+  pose_t pose_estimate;
+  if (scan_matching_match(scan, &system->lidar, &system->map,
+                          &system->pose.pose, &pose_estimate,
+                          system->params.scan_matching_iterations)) {
+    system->pose.pose = pose_estimate;
+    // TODO: update pose error based on scan matching result
     return LOCALISATION_SUCCESSFUL;
   }
 

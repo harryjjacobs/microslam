@@ -74,14 +74,15 @@ typedef struct occupancy_quadtree_t {
 typedef struct {
   uint16_t key_pose_distance;  // distance in mm to consider a new key pose
   float key_pose_angle;        // angle in radians to consider a new key pose
+  uint16_t scan_matching_iterations;  // maximum number of iterations for scan
+                                      // matching
 } slam_system_params_t;
 
 typedef struct {
   slam_system_params_t params;  // parameters for the SLAM system
+  lidar_sensor_t lidar;         // lidar sensor configuration
 
   robot_pose_t pose;  // current pose of the robot
-
-  scan_t scan;  // last scan received from the lidar
 
   occupancy_quadtree_t map;  // occupancy quadtree map of the environment
 
