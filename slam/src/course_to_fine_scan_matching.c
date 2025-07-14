@@ -75,6 +75,75 @@ bool course_to_fine_scan_matching_match(const scan_t* scan,
   return true;
 }
 
+// bool course_to_fine_scan_matching_match(const scan_t* scan,
+//                                         const lidar_sensor_t* sensor,
+//                                         occupancy_quadtree_t* map,
+//                                         const robot_pose_t* initial_guess,
+//                                         pose_t* pose_estimate) {
+//   const uint16_t min_resolution_t = map->size >> map->max_depth;
+//   const float min_resolution_r = DEG2RAD(0.5f);
+
+//   const uint16_t max_resolution_x = initial_guess->error.x;
+//   const uint16_t max_resolution_y = initial_guess->error.y;
+//   const float max_resolution_r = MIN(PI, initial_guess->error.r);
+
+//   const int steps = 5;
+
+//   // levels is how many times we can half the maximum resolution before we
+//   // reach the minimum resolution
+//   const uint8_t levels = (uint8_t)fmax(
+//       ceil(log2f(fmax(max_resolution_x, max_resolution_y) /
+//       min_resolution_t)), ceil(log2f(max_resolution_r / min_resolution_r)));
+
+//   pose_t best_pose = initial_guess->pose;
+//   pose_t current_best_pose = best_pose;
+
+//   for (int level = 0; level <= levels; level++) {
+//     float dx = (max_resolution_x >> level) / (steps >> 1);
+//     float dy = (max_resolution_y >> level) / (steps >> 1);
+//     float dtheta = max_resolution_r / (1 << level) / (steps >> 1);
+
+//     // INFO("Depth %d: dx = %.2f, dy = %.2f, dtheta = %.9f", level, dx, dy,
+//     //      dtheta);
+
+//     float best_score = -INFINITY;
+
+//     for (int ix = -(steps >> 1); ix <= (steps >> 1); ix++) {
+//       for (int iy = -(steps >> 1); iy <= (steps >> 1); iy++) {
+//         for (float theta = -(steps >> 1) * dtheta;
+//              theta <= (steps >> 1) * dtheta; theta += dtheta) {
+//           pose_t candidate = {.x = best_pose.x + ix * dx,
+//                               .y = best_pose.y + iy * dy,
+//                               .r = clamp_rotation(best_pose.r + theta)};
+//           float score = evaluate_scan_match(scan, map, candidate, level);
+
+//           // INFO(
+//           //     "Depth %d: Candidate pose (%d, %d, %.9f) "
+//           //     "Score: %.2f",
+//           //     level, candidate.x, candidate.y, candidate.r, score);
+
+//           if (score > best_score) {
+//             best_score = score;
+//             current_best_pose = candidate;
+//           }
+//         }
+//       }
+//     }
+
+//     // Update the best pose if we found a better one
+//     best_pose = current_best_pose;
+
+//     INFO("Level %d: Best score: %.2f at pose (%d, %d, %.2f)", level,
+//     best_score,
+//          best_pose.x, best_pose.y, best_pose.r);
+//   }
+
+//   // Final pose estimate
+//   *pose_estimate = best_pose;
+
+//   return true;
+// }
+
 float evaluate_scan_match(const scan_t* scan, occupancy_quadtree_t* map,
                           pose_t pose, uint8_t depth) {
   const uint16_t max_distance = map->size >> depth;
