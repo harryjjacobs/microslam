@@ -75,7 +75,7 @@ void test_occupancy_quadtree_update_multiple() {
 void test_occupancy_quadtree_update_depth_2() {
   occupancy_quadtree_t quadtree;
   occupancy_quadtree_init(&quadtree, 0, 0, 16, 2);
-  occupancy_quadtree_update(&quadtree, -7.5, 0, -7.5, 1);  // log odds = 1
+  occupancy_quadtree_update(&quadtree, -750, -750, 0, 1);  // log odds = 1
 
   TEST_ASSERT_EQUAL_INT(OCCUPANCY_MIXED, quadtree.occupancy);
   TEST_ASSERT_TRUE(quadtree.children[0] != NULL);
