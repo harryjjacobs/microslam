@@ -208,12 +208,12 @@ void test_course_to_fine_scan_matching() {
   initial_guess.error.r = DEG2RAD(10);
 
   // Test matching with a ground truth scan
-  pose_t pose;
-  TEST_ASSERT(course_to_fine_scan_matching_match(&gt_scan, &occupancy, 0,
-                                                 &initial_guess, &pose));
-  TEST_ASSERT_INT_WITHIN(1, gt_pose.x, pose.x);
-  TEST_ASSERT_INT_WITHIN(1, gt_pose.y, pose.y);
-  TEST_ASSERT_FLOAT_WITHIN(1e-3f, 0.0f, pose.r);
+  robot_pose_t pose_estimate;
+  TEST_ASSERT(course_to_fine_scan_matching_match(
+      &gt_scan, &occupancy, 0, &initial_guess, &pose_estimate));
+  TEST_ASSERT_INT_WITHIN(1, gt_pose.x, pose_estimate.pose.x);
+  TEST_ASSERT_INT_WITHIN(1, gt_pose.y, pose_estimate.pose.y);
+  TEST_ASSERT_FLOAT_WITHIN(1e-3f, 0.0f, pose_estimate.pose.r);
 
   // Test matching with a translated scan
   gt_pose.x = leaf_size / 2 + leaf_size * 25;
@@ -228,11 +228,11 @@ void test_course_to_fine_scan_matching() {
   initial_guess.error.x = leaf_size * 50;
   initial_guess.error.y = leaf_size * 50;
   initial_guess.error.r = DEG2RAD(5);
-  TEST_ASSERT(course_to_fine_scan_matching_match(&scan, &occupancy, 0,
-                                                 &initial_guess, &pose));
-  TEST_ASSERT_INT_WITHIN(leaf_size / 2, gt_pose.x, pose.x);
-  TEST_ASSERT_INT_WITHIN(leaf_size / 2, gt_pose.y, pose.y);
-  TEST_ASSERT_FLOAT_WITHIN(1e-3f, gt_pose.r, pose.r);
+  TEST_ASSERT(course_to_fine_scan_matching_match(
+      &scan, &occupancy, 0, &initial_guess, &pose_estimate));
+  TEST_ASSERT_INT_WITHIN(leaf_size / 2, gt_pose.x, pose_estimate.pose.x);
+  TEST_ASSERT_INT_WITHIN(leaf_size / 2, gt_pose.y, pose_estimate.pose.y);
+  TEST_ASSERT_FLOAT_WITHIN(1e-3f, gt_pose.r, pose_estimate.pose.r);
 
   // Test matching with a big translation and rotation
   gt_pose.x = leaf_size / 2 + leaf_size * 200;
@@ -247,11 +247,11 @@ void test_course_to_fine_scan_matching() {
   initial_guess.error.x = 2000;
   initial_guess.error.y = 2000;
   initial_guess.error.r = DEG2RAD(90);
-  TEST_ASSERT(course_to_fine_scan_matching_match(&scan, &occupancy, 0,
-                                                 &initial_guess, &pose));
-  TEST_ASSERT_INT_WITHIN(leaf_size / 2, gt_pose.x, pose.x);
-  TEST_ASSERT_INT_WITHIN(leaf_size / 2, gt_pose.y, pose.y);
-  TEST_ASSERT_FLOAT_WITHIN(1e-3f, gt_pose.r, pose.r);
+  TEST_ASSERT(course_to_fine_scan_matching_match(
+      &scan, &occupancy, 0, &initial_guess, &pose_estimate));
+  TEST_ASSERT_INT_WITHIN(leaf_size / 2, gt_pose.x, pose_estimate.pose.x);
+  TEST_ASSERT_INT_WITHIN(leaf_size / 2, gt_pose.y, pose_estimate.pose.y);
+  TEST_ASSERT_FLOAT_WITHIN(1e-3f, gt_pose.r, pose_estimate.pose.r);
 }
 
 void test_course_to_fine_scan_matching_max_id() {
@@ -265,7 +265,7 @@ void test_course_to_fine_scan_matching_max_id() {
   occupancy_quadtree_init(&occupancy, 0, 0, map_size, depth);
 
   lidar_sensor_t lidar;
-  lidar.max_range = 3000;
+  lidar.max_range = 1000;
   lidar.range_error = 5;
   lidar.bearing_error = 0.001f;
 
@@ -302,20 +302,20 @@ void test_course_to_fine_scan_matching_max_id() {
   // try to match the new scan against the map without max_id, with
   // an initial guess that is close to the new pose - it should
   // match with the new scan
-  pose_t pose_estimate;
+  robot_pose_t pose_estimate;
   TEST_ASSERT(course_to_fine_scan_matching_match(
       &new_scan, &occupancy, UINT16_MAX, &initial_guess, &pose_estimate));
-  TEST_ASSERT_INT_WITHIN(1, new_pose.x, pose_estimate.x);
-  TEST_ASSERT_INT_WITHIN(1, new_pose.y, pose_estimate.y);
-  TEST_ASSERT_FLOAT_WITHIN(1e-3f, new_pose.r, pose_estimate.r);
+  TEST_ASSERT_INT_WITHIN(1, new_pose.x, pose_estimate.pose.x);
+  TEST_ASSERT_INT_WITHIN(1, new_pose.y, pose_estimate.pose.y);
+  TEST_ASSERT_FLOAT_WITHIN(1e-3f, new_pose.r, pose_estimate.pose.r);
 
   // try to match the new scan against the map with max_id used to
   // ignore the new scan - it should match with the old scan
   TEST_ASSERT(course_to_fine_scan_matching_match(
       &new_scan, &occupancy, 0, &initial_guess, &pose_estimate));
-  TEST_ASSERT_INT_WITHIN(1, old_pose.x, pose_estimate.x);
-  TEST_ASSERT_INT_WITHIN(1, old_pose.y, pose_estimate.y);
-  TEST_ASSERT_FLOAT_WITHIN(1e-3f, old_pose.r, pose_estimate.r);
+  TEST_ASSERT_INT_WITHIN(1, old_pose.x, pose_estimate.pose.x);
+  TEST_ASSERT_INT_WITHIN(1, old_pose.y, pose_estimate.pose.y);
+  TEST_ASSERT_FLOAT_WITHIN(1e-3f, old_pose.r, pose_estimate.pose.r);
 }
 
 void setUp(void) {}

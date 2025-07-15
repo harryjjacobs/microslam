@@ -12,7 +12,7 @@ bool course_to_fine_scan_matching_match(const scan_t* scan,
                                         occupancy_quadtree_t* map,
                                         uint16_t max_id,
                                         const robot_pose_t* initial_guess,
-                                        pose_t* pose_estimate) {
+                                        robot_pose_t* pose_estimate) {
   const uint16_t map_min_resolution = map->size >> map->max_depth;
   const float min_angle_step = DEG2RAD(0.5f);
 
@@ -71,7 +71,11 @@ bool course_to_fine_scan_matching_match(const scan_t* scan,
     search_window_r *= 0.5f;
   }
 
-  *pose_estimate = best_pose;
+  pose_estimate->pose = best_pose;
+  pose_estimate->error.x = search_window_x;
+  pose_estimate->error.y = search_window_y;
+  pose_estimate->error.r = search_window_r;
+
   return true;
 }
 
