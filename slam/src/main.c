@@ -132,8 +132,8 @@ int main() {
     gt_motion.dx = 0;
     gt_motion.dy = 0;
     gt_motion.dr = 0;
-    gt_motion.error_x = 0.5f;  // mm
-    gt_motion.error_y = 0.5f;  // mm
+    gt_motion.error_x = 1.0f;  // mm
+    gt_motion.error_y = 1.0f;  // mm
     gt_motion.error_r = 0.05;  // rad
 
     motion_t motion;
@@ -182,6 +182,9 @@ int main() {
       // move
       move(&gt_state, &gt_motion);
       move(&robot.state, &motion);
+      robot.state.error.x += gt_motion.error_x;
+      robot.state.error.y += gt_motion.error_y;
+      robot.state.error.r += gt_motion.error_r;
 
       if ((hypotf(robot.state.pose.x - prev_update_pose.x,
                   robot.state.pose.y - prev_update_pose.y) >=
@@ -202,14 +205,12 @@ int main() {
           // update the occupancy grid
           map_add_scan(&occ, &scan, &robot.state.pose, 0, 1.0);
         } else if (scan.hits > 5) {
-          pose_t pose_estimate;
+          robot_pose_t pose_estimate;
           if (scan_matching_match(&scan, &robot.lidar, &occ, &robot.state.pose,
                                   &pose_estimate, 100)) {
-            INFO("scan match pose estimate: %d %d %f", pose_estimate.x,
-                 pose_estimate.y, pose_estimate.r);
-            robot.state.pose.x = pose_estimate.x;
-            robot.state.pose.y = pose_estimate.y;
-            robot.state.pose.r = pose_estimate.r;
+            INFO("scan match pose estimate: %d %d %f", pose_estimate.pose.x,
+                 pose_estimate.pose.y, pose_estimate.pose.r);
+            robot.state = pose_estimate;
 
             // update the occupancy grid
             map_add_scan(&occ, &scan, &robot.state.pose, 0, 10);
@@ -220,6 +221,9 @@ int main() {
              gt_state.pose.r);
         INFO("robot pose: %d %d %f", robot.state.pose.x, robot.state.pose.y,
              robot.state.pose.r);
+        INFO("difference: %d %d %f", robot.state.pose.x - gt_state.pose.x,
+             robot.state.pose.y - gt_state.pose.y,
+             robot.state.pose.r - gt_state.pose.r);
 
         slam_viewer_draw_scan(&scan, &gt_state.pose, 0, 0, 1);
       }
@@ -227,8 +231,11 @@ int main() {
 
     // draw
     slam_viewer_draw_occupancy(&occ);
+    slam_viewer_draw_robot(&gt_state.pose, 0, 0, 1, 0.5);
     slam_viewer_draw_robot(&robot.state.pose, 0, 1, 0, 1);
-    slam_viewer_draw_robot(&gt_state.pose, 0, 1, 0, 0.5);
+    slam_viewer_draw_error(&robot.state.pose, &robot.state.error, 0, 0, 1, 0.5);
+    INFO("error: %d %d %f", robot.state.error.x, robot.state.error.y,
+         robot.state.error.r);
     slam_viewer_end_draw(&viewer);
 
     // sleep

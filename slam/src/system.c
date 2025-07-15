@@ -136,11 +136,11 @@ static slam_localisation_result_t localise(slam_system_t *system,
     return LOCALISATION_INITIALISING;
   }
 
-  pose_t pose_estimate;
+  robot_pose_t pose_estimate;
   if (scan_matching_match(scan, &system->lidar, &system->map,
                           &system->pose.pose, &pose_estimate,
                           system->params.scan_matching_iterations)) {
-    system->pose.pose = pose_estimate;
+    system->pose = pose_estimate;
     // TODO: update pose error based on scan matching result
     return LOCALISATION_SUCCESSFUL;
   }

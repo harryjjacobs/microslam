@@ -78,12 +78,15 @@ static inline void calc_noise_covariance(float cov[4], float angle, float range,
  * @param scan the scan containing the points
  * @param index the index of the point in the scan
  * @param map the occupancy quadtree map
+ * @param dist the distance to the nearest point in the map
  */
 static void calc_correspondence_covariance(float cov[4], const scan_t* scan,
                                            uint16_t index,
-                                           const occupancy_quadtree_t* map) {
-  const float leaf_size = map->size / (1 << map->max_depth);
-  const float variance = (leaf_size * leaf_size) / 3.0f;
+                                           const occupancy_quadtree_t* map,
+                                           uint16_t dist) {
+  const float leaf_size = map->size >> map->max_depth;
+  const float delta = leaf_size + dist;
+  const float variance = (delta * delta) / 3.0f;
 
   size_t prev = (index + 359) % 360;
   size_t next = (index + 1) % 360;
@@ -115,13 +118,13 @@ static void calc_correspondence_covariance(float cov[4], const scan_t* scan,
 bool scan_matching_match(const scan_t* current_scan,
                          const lidar_sensor_t* sensor,
                          occupancy_quadtree_t* map, const pose_t* initial_guess,
-                         pose_t* pose_estimate, uint16_t max_iterations) {
+                         robot_pose_t* pose_estimate, uint16_t max_iterations) {
   // From the papers: Weighted Range Sensor Matching Algorithms for Mobile
   // Robot Displacement Estimation (2002) and Robust Weighted Scan Matching
   // with Quadtrees (2009)
 
-  const float leaf_size = map->size / (1 << map->max_depth);
-  const float max_match_dist = 2.0f * leaf_size;
+  const uint16_t leaf_size = map->size >> map->max_depth;
+  const uint16_t max_match_dist = 3 * leaf_size;
 
   float t_x = initial_guess->x;
   float t_y = initial_guess->y;
@@ -158,7 +161,7 @@ bool scan_matching_match(const scan_t* current_scan,
       float ax = node->x;
       float ay = node->y;
 
-      calc_correspondence_covariance(corresp_cov, current_scan, k, map);
+      calc_correspondence_covariance(corresp_cov, current_scan, k, map, dist);
       calc_noise_covariance(noise_cov, DEG2RAD(k), range, sensor->bearing_error,
                             sensor->range_error);
 
@@ -215,9 +218,24 @@ bool scan_matching_match(const scan_t* current_scan,
 
     if (fabsf(dr) < ROTATION_EPSILON && fabsf(dtx) < TRANSLATION_EPSILON &&
         fabsf(dty) < TRANSLATION_EPSILON) {
-      pose_estimate->x = t_x;
-      pose_estimate->y = t_y;
-      pose_estimate->r = phi;
+      pose_estimate->pose.x = t_x;
+      pose_estimate->pose.y = t_y;
+      pose_estimate->pose.r = phi;
+
+      float rotational_variance = 1.0f / delta_theta_den;
+
+      // float translational_covariance[4];
+      // mat2x2_inv(cov_inv_sum, translational_covariance);
+
+      INFO("Translational covariance: [%f, %f; %f, %f]", cov_inv_sum_inv[0],
+           cov_inv_sum_inv[1], cov_inv_sum_inv[2], cov_inv_sum_inv[3]);
+
+      // For now we'll just use the diagonal elements of the covariance
+      // as the error
+      pose_estimate->error.x = ceilf(cov_inv_sum_inv[0]);
+      pose_estimate->error.y = ceilf(cov_inv_sum_inv[3]);
+      pose_estimate->error.r = rotational_variance;
+
       INFO("Convergence reached after %d iterations", iter);
       return true;
     }

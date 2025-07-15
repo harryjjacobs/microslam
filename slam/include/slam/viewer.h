@@ -21,6 +21,8 @@ void slam_viewer_init(slam_viewer_t *viewer);
 void slam_viewer_begin_draw();
 void slam_viewer_end_draw(slam_viewer_t *viewer);
 void slam_viewer_draw_robot(pose_t *pose, float r, float g, float b, float a);
+void slam_viewer_draw_error(pose_t *pose, pose_t *error, float r, float g,
+                            float b, float a);
 void slam_viewer_draw_scan(scan_t *scan, pose_t *pose, float r, float g,
                            float b);
 void slam_viewer_draw_occupancy(occupancy_quadtree_t *occupancy);
