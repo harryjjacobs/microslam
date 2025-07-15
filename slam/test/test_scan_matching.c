@@ -176,6 +176,58 @@ void test_weighted_scan_matching_simple() {
   TEST_ASSERT_FLOAT_WITHIN(1e-3f, 0.0f, pose.pose.r);
 }
 
+void test_scan_matching() {
+  const uint16_t map_size = 4096;
+  const uint8_t depth = 10;
+  const uint8_t leaf_size = map_size >> depth;
+
+  INFO("map size: %hu, depth: %d, leaf size: %d", map_size, depth, leaf_size);
+
+  occupancy_quadtree_t occupancy;
+  occupancy_quadtree_init(&occupancy, 0, 0, map_size, depth);
+
+  pose_t robot_pose = {.x = leaf_size / 2, .y = leaf_size / 2, .r = 0.0f};
+
+  lidar_sensor_t lidar;
+  lidar.max_range = 3000;
+  lidar.range_error = 2;
+  lidar.bearing_error = 0.001f;
+
+  scan_t gt_scan, scan;
+  scan_reset(&gt_scan);
+  scan_reset(&scan);
+
+  generate_room_scan(&gt_scan, robot_pose.x, robot_pose.y, robot_pose.r, 1500);
+  map_add_scan(&occupancy, &gt_scan, &robot_pose, 0, 1.0);
+
+  pose_t initial_guess = robot_pose;
+  robot_pose_t pose_estimate;
+
+  TEST_ASSERT(scan_matching_match(&gt_scan, &lidar, &occupancy, &initial_guess,
+                                  &pose_estimate, UINT16_MAX));
+
+  TEST_ASSERT_INT_WITHIN(0, robot_pose.x, pose_estimate.pose.x);
+  TEST_ASSERT_INT_WITHIN(0, robot_pose.y, pose_estimate.pose.y);
+  TEST_ASSERT_FLOAT_WITHIN(1e-3f, robot_pose.r, pose_estimate.pose.r);
+  TEST_ASSERT_GREATER_THAN_FLOAT(0.0f, pose_estimate.error.x);
+  TEST_ASSERT_GREATER_THAN_FLOAT(0.0f, pose_estimate.error.y);
+  TEST_ASSERT_GREATER_THAN_FLOAT(0.0f, pose_estimate.error.r);
+
+  initial_guess.x = leaf_size / 2 + leaf_size * 3;
+  initial_guess.y = leaf_size / 2 + leaf_size * 3;
+  initial_guess.r = DEG2RAD(10);
+
+  TEST_ASSERT(scan_matching_match(&gt_scan, &lidar, &occupancy, &initial_guess,
+                                  &pose_estimate, UINT16_MAX));
+
+  TEST_ASSERT_INT_WITHIN(0, robot_pose.x, pose_estimate.pose.x);
+  TEST_ASSERT_INT_WITHIN(0, robot_pose.y, pose_estimate.pose.y);
+  TEST_ASSERT_FLOAT_WITHIN(1e-3f, robot_pose.r, pose_estimate.pose.r);
+  TEST_ASSERT_GREATER_THAN_FLOAT(0.0f, pose_estimate.error.x);
+  TEST_ASSERT_GREATER_THAN_FLOAT(0.0f, pose_estimate.error.y);
+  TEST_ASSERT_GREATER_THAN_FLOAT(0.0f, pose_estimate.error.r);
+}
+
 void test_course_to_fine_scan_matching() {
   const uint16_t map_size = 4096;
   const uint8_t depth = 10;
@@ -325,6 +377,7 @@ int main(void) {
   UNITY_BEGIN();
 
   RUN_TEST(test_weighted_scan_matching_simple);
+  RUN_TEST(test_scan_matching);
   RUN_TEST(test_course_to_fine_scan_matching);
   RUN_TEST(test_course_to_fine_scan_matching_max_id);
 

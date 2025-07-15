@@ -7,8 +7,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define TRANSLATION_EPSILON 1e-5f
-#define ROTATION_EPSILON 1e-5f
+#define TRANSLATION_EPSILON 1e-6f
+#define ROTATION_EPSILON 1e-6f
 
 static inline void vec2_reset(float* x, float* y) {
   *x = 0.0f;
@@ -82,10 +82,9 @@ static inline void calc_noise_covariance(float cov[4], float angle, float range,
  */
 static void calc_correspondence_covariance(float cov[4], const scan_t* scan,
                                            uint16_t index,
-                                           const occupancy_quadtree_t* map,
-                                           uint16_t dist) {
+                                           const occupancy_quadtree_t* map) {
   const float leaf_size = map->size >> map->max_depth;
-  const float delta = leaf_size + dist;
+  const float delta = leaf_size;
   const float variance = (delta * delta) / 3.0f;
 
   size_t prev = (index + 359) % 360;
@@ -123,8 +122,8 @@ bool scan_matching_match(const scan_t* current_scan,
   // Robot Displacement Estimation (2002) and Robust Weighted Scan Matching
   // with Quadtrees (2009)
 
-  const uint16_t leaf_size = map->size >> map->max_depth;
-  const uint16_t max_match_dist = 3 * leaf_size;
+  // TODO: use error from the initial guess to limit the search space
+  const uint16_t max_match_dist = 50;
 
   float t_x = initial_guess->x;
   float t_y = initial_guess->y;
@@ -161,7 +160,7 @@ bool scan_matching_match(const scan_t* current_scan,
       float ax = node->x;
       float ay = node->y;
 
-      calc_correspondence_covariance(corresp_cov, current_scan, k, map, dist);
+      calc_correspondence_covariance(corresp_cov, current_scan, k, map);
       calc_noise_covariance(noise_cov, DEG2RAD(k), range, sensor->bearing_error,
                             sensor->range_error);
 
@@ -211,7 +210,7 @@ bool scan_matching_match(const scan_t* current_scan,
     float dr = delta_theta_num / delta_theta_den;
     phi = clamp_rotation(phi + dr);
 
-    INFO(
+    DEBUG(
         "Iter %d: t = (%.4f, %.4f), phi = %.4f, dtx = %.4f, dty = %.4f, dr = "
         "%.4f",
         iter, t_x, t_y, phi, dtx, dty, dr);
@@ -224,11 +223,9 @@ bool scan_matching_match(const scan_t* current_scan,
 
       float rotational_variance = 1.0f / delta_theta_den;
 
-      // float translational_covariance[4];
-      // mat2x2_inv(cov_inv_sum, translational_covariance);
-
       INFO("Translational covariance: [%f, %f; %f, %f]", cov_inv_sum_inv[0],
            cov_inv_sum_inv[1], cov_inv_sum_inv[2], cov_inv_sum_inv[3]);
+      INFO("Rotational covariance: %f", rotational_variance);
 
       // For now we'll just use the diagonal elements of the covariance
       // as the error
