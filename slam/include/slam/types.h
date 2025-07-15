@@ -74,8 +74,14 @@ typedef struct occupancy_quadtree_t {
 typedef struct {
   uint16_t key_pose_distance;  // distance in mm to consider a new key pose
   float key_pose_angle;        // angle in radians to consider a new key pose
+
+  // scan matching parameters
   uint16_t scan_matching_iterations;  // maximum number of iterations for scan
                                       // matching
+
+  // relocalisation parameters
+  float relocalise_distance_t;  // distance in mm to consider a relocalisation
+  float relocalise_distance_r;  // angle in radians to consider a relocalisation
 } slam_system_params_t;
 
 typedef struct {

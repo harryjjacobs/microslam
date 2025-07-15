@@ -3,6 +3,7 @@
 #include <math.h>
 #include <stdbool.h>
 
+#include "slam/course_to_fine_scan_matching.h"
 #include "slam/logging.h"
 #include "slam/scan.h"
 #include "slam/weighted_scan_matching.h"
@@ -18,7 +19,12 @@ static void robot_pose_init(robot_pose_t *pose);
 static void map_init(occupancy_quadtree_t *map);
 static bool should_add_key_pose(slam_system_t *system, pose_t *pose);
 static void add_key_pose(slam_system_t *system, robot_pose_t *pose);
+static bool should_relocalise(slam_system_params_t *params,
+                              robot_pose_t *current_pose,
+                              robot_pose_t *estimated_pose);
 static slam_localisation_result_t localise(slam_system_t *system, scan_t *scan);
+static slam_localisation_result_t relocalise(slam_system_t *system,
+                                             scan_t *scan);
 
 void slam_system_init(slam_system_t *state) {
   robot_pose_init(&state->pose);
@@ -139,11 +145,35 @@ static slam_localisation_result_t localise(slam_system_t *system,
   robot_pose_t pose_estimate;
   if (scan_matching_match(scan, &system->lidar, &system->map,
                           &system->pose.pose, &pose_estimate,
-                          system->params.scan_matching_iterations)) {
+                          system->params.scan_matching_iterations) &&
+      !should_relocalise(&system->params, &system->pose, &pose_estimate)) {
     system->pose = pose_estimate;
-    // TODO: update pose error based on scan matching result
     return LOCALISATION_SUCCESSFUL;
+  } else {
+    INFO("Standard scan matching failed, trying relocalisation");
+    return relocalise(system, scan);
   }
 
+  return LOCALISATION_FAILED;
+}
+
+static bool should_relocalise(slam_system_params_t *params,
+                              robot_pose_t *current_pose,
+                              robot_pose_t *estimated_pose) {
+  float dist_t = hypotf(current_pose->pose.x - estimated_pose->pose.x,
+                        current_pose->pose.y - estimated_pose->pose.y);
+  float dist_r = fabsf(current_pose->pose.r - estimated_pose->pose.r);
+  return (dist_t > params->relocalise_distance_t ||
+          dist_r > params->relocalise_distance_r);
+}
+
+static slam_localisation_result_t relocalise(slam_system_t *system,
+                                             scan_t *scan) {
+  robot_pose_t pose_estimate;
+  if (course_to_fine_scan_matching_match(scan, &system->map, UINT16_MAX,
+                                         &system->pose, &pose_estimate)) {
+    system->pose = pose_estimate;
+    return LOCALISATION_SUCCESSFUL;
+  }
   return LOCALISATION_FAILED;
 }
