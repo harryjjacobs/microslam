@@ -29,15 +29,16 @@ endif()
 # === Library ===
 
 add_library(slam STATIC 
+    src/course_to_fine_scan_matching.c
+    src/default_logging.c
+    src/loop_closure.c
     src/map.c
     src/occupancy_quadtree.c
-    src/weighted_scan_matching.c
-    src/course_to_fine_scan_matching.c
     src/scan.c
-    src/utils.c
-    src/system.c
-    src/default_logging.c
     src/serialisation.c
+    src/system.c
+    src/utils.c
+    src/weighted_scan_matching.c
     thirdparty/log/log.c
 )
 target_include_directories(slam PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty)

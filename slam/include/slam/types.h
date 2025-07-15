@@ -1,5 +1,5 @@
 /*
- * slam.h
+ * types.h
  *
  *  Created on: Mar 5, 2024
  *      Author: harryjjacobs
@@ -67,9 +67,20 @@ typedef struct occupancy_quadtree_t {
   uint8_t max_depth;
   uint8_t occupancy;
 
-  // TODO: find a way of referencing the children in a more compact way.
+  // TODO: find a way of referencing the children in a more compact way using
+  // some kind of area allocator/memory pool
   struct occupancy_quadtree_t *children[4];
 } occupancy_quadtree_t;
+
+typedef struct {
+  uint16_t last_key_pose_id;  // last key pose id used for loop closure (0
+  // if no loop closure has been performed yet)
+  uint16_t *ids;                 // array of key pose ids used for loop closure
+  robot_pose_t *trajectory;      // trajectory of the robot for loop closure
+  uint16_t trajectory_capacity;  // capacity of the trajectory array
+  uint16_t trajectory_size;      // current size of the trajectory array
+  uint16_t loop_closure_count;   // number of loop closures performed
+} loop_closure_t;
 
 typedef struct {
   uint16_t key_pose_distance;  // distance in mm to consider a new key pose
@@ -80,8 +91,23 @@ typedef struct {
                                       // matching
 
   // relocalisation parameters
-  float relocalise_distance_t;  // distance in mm to consider a relocalisation
+  uint16_t
+      relocalise_distance_t;    // distance in mm to consider a relocalisation
   float relocalise_distance_r;  // angle in radians to consider a relocalisation
+
+  // loop closure parameters
+  float odometry_error_x;  // odometry error per mm for x coordinate
+  float odometry_error_y;  // odometry error per mm for y coordinate
+  float odometry_error_r;  // odometry error per radians for rotation
+  uint16_t loop_closure_min_interval;  // minimum distance in key poses
+                                       // between the current pose and the
+                                       // candidate key pose for loop
+                                       // closure
+  uint16_t loop_closure_max_t;  // maximum distance in mm between key poses to
+                                // consider a loop closure
+  float loop_closure_max_r;     // maximum angle in radians between key poses to
+                                // consider a loop closure
+
 } slam_system_params_t;
 
 typedef struct {
@@ -95,6 +121,8 @@ typedef struct {
   robot_pose_t *key_poses;      // history of key poses for localisation
   uint16_t key_poses_capacity;  // capacity of the key poses array
   uint16_t key_pose_id;         // unique identifier of the current key pose
+
+  loop_closure_t loop_closure;  // loop closure information
 } slam_system_t;
 
-#endif /* SLAM_TYPES_H_ */
+#endif
