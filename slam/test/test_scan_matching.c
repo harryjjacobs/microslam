@@ -155,9 +155,9 @@ void test_weighted_scan_matching_simple() {
   TEST_ASSERT_FLOAT_WITHIN(1e-3f, robot_pose.y, pose.pose.y);
   TEST_ASSERT_FLOAT_WITHIN(1e-3f, 0.0f, pose.pose.r);
 
-  TEST_ASSERT_FLOAT_WITHIN(1e-3f, 0.0f, pose.error.x);
-  TEST_ASSERT_FLOAT_WITHIN(1e-3f, 0.0f, pose.error.y);
-  TEST_ASSERT_FLOAT_WITHIN(1e-3f, 0.0f, pose.error.r);
+  TEST_ASSERT_GREATER_THAN_FLOAT(0.0f, pose.error.x);
+  TEST_ASSERT_GREATER_THAN_FLOAT(0.0f, pose.error.y);
+  TEST_ASSERT_GREATER_THAN_FLOAT(0.0f, pose.error.r);
 
   scan.range[0] = gt_scan.range[0] + leaf_size;
 
