@@ -45,6 +45,6 @@ bool course_to_fine_scan_matching_match(const scan_t* scan,
                                         occupancy_quadtree_t* map,
                                         uint16_t max_id,
                                         const robot_pose_t* initial_guess,
-                                        pose_t* pose_estimate);
+                                        robot_pose_t* pose_estimate);
 
 #endif /* SLAM_SCAN_MATCHING_H_ */

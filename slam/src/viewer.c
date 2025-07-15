@@ -20,7 +20,7 @@ static void key_callback(GLFWwindow *window, int key, int scancode, int action,
 }
 
 void slam_viewer_draw_robot(pose_t *pose, float r, float g, float b, float a) {
-  static float size = 100;
+  static float size = 50;
   glPushMatrix();
   glTranslatef(pose->x, pose->y, 0);
   glRotatef(pose->r * 180 / PI - 90.0f, 0, 0, 1);
@@ -29,6 +29,27 @@ void slam_viewer_draw_robot(pose_t *pose, float r, float g, float b, float a) {
   glVertex2f(0, size);
   glVertex2f(size, -size);
   glVertex2f(-size, -size);
+  glEnd();
+  glPopMatrix();
+}
+
+void slam_viewer_draw_error(pose_t *pose, pose_t *error, float r, float g,
+                            float b, float a) {
+  // draw covariance 90% confidence region ellipse
+  float a_x = error->x * 2.4477f;  // 90% confidence interval for x
+  float a_y = error->y * 2.4477f;  // 90% confidence interval for y
+  float angle = pose->r;
+  glPushMatrix();
+  glTranslatef(pose->x, pose->y, 0);
+  glRotatef(angle * 180 / PI, 0, 0, 1);
+  glBegin(GL_LINE_LOOP);
+  glColor4f(r, g, b, a);
+  for (int i = 0; i < 360; i++) {
+    float theta = DEG2RAD(i);
+    float x = a_x * cosf(theta);
+    float y = a_y * sinf(theta);
+    glVertex2f(x, y);
+  }
   glEnd();
   glPopMatrix();
 }
@@ -127,7 +148,7 @@ void slam_viewer_draw_all(occupancy_quadtree_t *occupancy,
   slam_viewer_draw_occupancy(occupancy);
   slam_viewer_draw_scan(scan, &gt_robot_state->pose, 0, 0, 1);
   slam_viewer_draw_robot(&estimated_robot_state->pose, 0, 1, 0, 1);
-  slam_viewer_draw_robot(&gt_robot_state->pose, 0, 1, 0, 0.5);
+  slam_viewer_draw_robot(&gt_robot_state->pose, 1, 0, 0, 0.5);
 }
 
 void slam_viewer_wait(slam_viewer_t *viewer) {

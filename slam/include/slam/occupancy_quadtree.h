@@ -56,12 +56,49 @@ occupancy_quadtree_t *occupancy_quadtree_update(occupancy_quadtree_t *quadtree,
                                                 int16_t x, int16_t y,
                                                 uint16_t id, int32_t log_odds);
 
+/**
+ * @brief Find a leaf node in the quadtree that contains the point (x, y).
+ *
+ * @param quadtree The quadtree to search in.
+ * @param x The x coordinate of the point to find.
+ * @param y The y coordinate of the point to find.
+ * @return occupancy_quadtree_t*
+ */
 occupancy_quadtree_t *occupancy_quadtree_find(occupancy_quadtree_t *quadtree,
                                               int16_t x, int16_t y);
 
+/**
+ * @brief Find the nearest leaf node in the quadtree to the point (x, y).
+ *
+ * @param quadtree The quadtree to search in.
+ * @param x The x coordinate of the point to find.
+ * @param y The y coordinate of the point to find.
+ * @param distance A pointer to a variable that will be set to the distance from
+ * the point (x, y) to the nearest leaf node in the quadtree. If this is NULL,
+ * the distance will not be calculated.
+ * @return occupancy_quadtree_t*
+ */
 occupancy_quadtree_t *occupancy_quadtree_nearest(occupancy_quadtree_t *quadtree,
                                                  int16_t x, int16_t y,
                                                  uint16_t *distance);
+
+/**
+ * @brief Finds the k nearest leaf nodes in the quadtree to the point (x, y).
+ *
+ * @param quadtree The quadtree to search in.
+ * @param x The x coordinate of the point to find.
+ * @param y The y coordinate of the point to find.
+ * @param nearest A pointer to an array of occupancy_quadtree_t pointers that
+ * will be filled with the k nearest leaf nodes. The array must be allocated by
+ * the caller and must have at least k elements.
+ * @param k The maximum number of nearest leaf nodes to find. Must be greater
+ * than 0.
+ * @return size_t The number of nearest leaf nodes found. This can be less than
+ * k if there are not enough leaf nodes in the quadtree.
+ */
+uint16_t occupancy_quadtree_k_nearest(occupancy_quadtree_t *quadtree, int16_t x,
+                                      int16_t y, occupancy_quadtree_t **nearest,
+                                      uint16_t k);
 
 /**
  * @brief Iterate over all leaf nodes in the quadtree.

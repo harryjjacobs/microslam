@@ -94,7 +94,7 @@ void generate_wall_scan(scan_t *gt_scan, float robot_x, float robot_y,
     float dx = cosf(global_angle);
     float dy = sinf(global_angle);
 
-    float distance = INFINITY;
+    float distance = 0;
 
     // Handle rays roughly pointing towards wall (avoid division by zero)
     if (fabsf(dx) > 1e-6f) {
@@ -138,7 +138,7 @@ void test_weighted_scan_matching_simple() {
 
   lidar_sensor_t lidar;
   lidar.max_range = 3000;
-  lidar.range_error = 5;
+  lidar.range_error = 1;
   lidar.bearing_error = 0.001f;
 
   scan_t gt_scan, scan;
@@ -148,28 +148,84 @@ void test_weighted_scan_matching_simple() {
   gt_scan.range[0] = leaf_size * 25.0f;
   map_add_scan(&occupancy, &gt_scan, &robot_pose, 0, 1.0);
 
-  pose_t pose;
+  robot_pose_t pose;
   TEST_ASSERT(scan_matching_match(&gt_scan, &lidar, &occupancy, &robot_pose,
                                   &pose, 100));
-  TEST_ASSERT_INT_WITHIN(1, robot_pose.x, pose.x);
-  TEST_ASSERT_FLOAT_WITHIN(1e-3f, robot_pose.y, pose.y);
-  TEST_ASSERT_FLOAT_WITHIN(1e-3f, 0.0f, pose.r);
+  TEST_ASSERT_INT_WITHIN(1, robot_pose.x, pose.pose.x);
+  TEST_ASSERT_FLOAT_WITHIN(1e-3f, robot_pose.y, pose.pose.y);
+  TEST_ASSERT_FLOAT_WITHIN(1e-3f, 0.0f, pose.pose.r);
+
+  TEST_ASSERT_GREATER_THAN_FLOAT(0.0f, pose.error.x);
+  TEST_ASSERT_GREATER_THAN_FLOAT(0.0f, pose.error.y);
+  TEST_ASSERT_GREATER_THAN_FLOAT(0.0f, pose.error.r);
 
   scan.range[0] = gt_scan.range[0] + leaf_size;
 
   TEST_ASSERT(
       scan_matching_match(&scan, &lidar, &occupancy, &robot_pose, &pose, 100));
-  TEST_ASSERT_INT_WITHIN(1, robot_pose.x - leaf_size, pose.x);
-  TEST_ASSERT_FLOAT_WITHIN(1e-3f, robot_pose.y, pose.y);
-  TEST_ASSERT_FLOAT_WITHIN(1e-3f, 0.0f, pose.r);
+  TEST_ASSERT_INT_WITHIN(1, robot_pose.x - leaf_size, pose.pose.x);
+  TEST_ASSERT_FLOAT_WITHIN(1e-3f, robot_pose.y, pose.pose.y);
+  TEST_ASSERT_FLOAT_WITHIN(1e-3f, 0.0f, pose.pose.r);
 
   scan.range[0] = gt_scan.range[0] - 2.0f * leaf_size;
 
   TEST_ASSERT(
       scan_matching_match(&scan, &lidar, &occupancy, &robot_pose, &pose, 100));
-  TEST_ASSERT_INT_WITHIN(1, robot_pose.x + 2.0f * leaf_size, pose.x);
-  TEST_ASSERT_FLOAT_WITHIN(1e-3f, robot_pose.y, pose.y);
-  TEST_ASSERT_FLOAT_WITHIN(1e-3f, 0.0f, pose.r);
+  TEST_ASSERT_INT_WITHIN(1, robot_pose.x + 2.0f * leaf_size, pose.pose.x);
+  TEST_ASSERT_FLOAT_WITHIN(1e-3f, robot_pose.y, pose.pose.y);
+  TEST_ASSERT_FLOAT_WITHIN(1e-3f, 0.0f, pose.pose.r);
+}
+
+void test_scan_matching() {
+  const uint16_t map_size = 4096;
+  const uint8_t depth = 10;
+  const uint8_t leaf_size = map_size >> depth;
+
+  INFO("map size: %hu, depth: %d, leaf size: %d", map_size, depth, leaf_size);
+
+  occupancy_quadtree_t occupancy;
+  occupancy_quadtree_init(&occupancy, 0, 0, map_size, depth);
+
+  pose_t robot_pose = {.x = leaf_size / 2, .y = leaf_size / 2, .r = 0.0f};
+
+  lidar_sensor_t lidar;
+  lidar.max_range = 3000;
+  lidar.range_error = 2;
+  lidar.bearing_error = 0.001f;
+
+  scan_t gt_scan, scan;
+  scan_reset(&gt_scan);
+  scan_reset(&scan);
+
+  generate_room_scan(&gt_scan, robot_pose.x, robot_pose.y, robot_pose.r, 1500);
+  map_add_scan(&occupancy, &gt_scan, &robot_pose, 0, 1.0);
+
+  pose_t initial_guess = robot_pose;
+  robot_pose_t pose_estimate;
+
+  TEST_ASSERT(scan_matching_match(&gt_scan, &lidar, &occupancy, &initial_guess,
+                                  &pose_estimate, UINT16_MAX));
+
+  TEST_ASSERT_INT_WITHIN(0, robot_pose.x, pose_estimate.pose.x);
+  TEST_ASSERT_INT_WITHIN(0, robot_pose.y, pose_estimate.pose.y);
+  TEST_ASSERT_FLOAT_WITHIN(1e-3f, robot_pose.r, pose_estimate.pose.r);
+  TEST_ASSERT_GREATER_THAN_FLOAT(0.0f, pose_estimate.error.x);
+  TEST_ASSERT_GREATER_THAN_FLOAT(0.0f, pose_estimate.error.y);
+  TEST_ASSERT_GREATER_THAN_FLOAT(0.0f, pose_estimate.error.r);
+
+  initial_guess.x = leaf_size / 2 + leaf_size * 3;
+  initial_guess.y = leaf_size / 2 + leaf_size * 3;
+  initial_guess.r = DEG2RAD(10);
+
+  TEST_ASSERT(scan_matching_match(&gt_scan, &lidar, &occupancy, &initial_guess,
+                                  &pose_estimate, UINT16_MAX));
+
+  TEST_ASSERT_INT_WITHIN(0, robot_pose.x, pose_estimate.pose.x);
+  TEST_ASSERT_INT_WITHIN(0, robot_pose.y, pose_estimate.pose.y);
+  TEST_ASSERT_FLOAT_WITHIN(1e-3f, robot_pose.r, pose_estimate.pose.r);
+  TEST_ASSERT_GREATER_THAN_FLOAT(0.0f, pose_estimate.error.x);
+  TEST_ASSERT_GREATER_THAN_FLOAT(0.0f, pose_estimate.error.y);
+  TEST_ASSERT_GREATER_THAN_FLOAT(0.0f, pose_estimate.error.r);
 }
 
 void test_course_to_fine_scan_matching() {
@@ -204,12 +260,12 @@ void test_course_to_fine_scan_matching() {
   initial_guess.error.r = DEG2RAD(10);
 
   // Test matching with a ground truth scan
-  pose_t pose;
-  TEST_ASSERT(course_to_fine_scan_matching_match(&gt_scan, &occupancy, 0,
-                                                 &initial_guess, &pose));
-  TEST_ASSERT_INT_WITHIN(1, gt_pose.x, pose.x);
-  TEST_ASSERT_INT_WITHIN(1, gt_pose.y, pose.y);
-  TEST_ASSERT_FLOAT_WITHIN(1e-3f, 0.0f, pose.r);
+  robot_pose_t pose_estimate;
+  TEST_ASSERT(course_to_fine_scan_matching_match(
+      &gt_scan, &occupancy, 0, &initial_guess, &pose_estimate));
+  TEST_ASSERT_INT_WITHIN(1, gt_pose.x, pose_estimate.pose.x);
+  TEST_ASSERT_INT_WITHIN(1, gt_pose.y, pose_estimate.pose.y);
+  TEST_ASSERT_FLOAT_WITHIN(1e-3f, 0.0f, pose_estimate.pose.r);
 
   // Test matching with a translated scan
   gt_pose.x = leaf_size / 2 + leaf_size * 25;
@@ -224,11 +280,11 @@ void test_course_to_fine_scan_matching() {
   initial_guess.error.x = leaf_size * 50;
   initial_guess.error.y = leaf_size * 50;
   initial_guess.error.r = DEG2RAD(5);
-  TEST_ASSERT(course_to_fine_scan_matching_match(&scan, &occupancy, 0,
-                                                 &initial_guess, &pose));
-  TEST_ASSERT_INT_WITHIN(leaf_size / 2, gt_pose.x, pose.x);
-  TEST_ASSERT_INT_WITHIN(leaf_size / 2, gt_pose.y, pose.y);
-  TEST_ASSERT_FLOAT_WITHIN(1e-3f, gt_pose.r, pose.r);
+  TEST_ASSERT(course_to_fine_scan_matching_match(
+      &scan, &occupancy, 0, &initial_guess, &pose_estimate));
+  TEST_ASSERT_INT_WITHIN(leaf_size / 2, gt_pose.x, pose_estimate.pose.x);
+  TEST_ASSERT_INT_WITHIN(leaf_size / 2, gt_pose.y, pose_estimate.pose.y);
+  TEST_ASSERT_FLOAT_WITHIN(1e-3f, gt_pose.r, pose_estimate.pose.r);
 
   // Test matching with a big translation and rotation
   gt_pose.x = leaf_size / 2 + leaf_size * 200;
@@ -243,11 +299,11 @@ void test_course_to_fine_scan_matching() {
   initial_guess.error.x = 2000;
   initial_guess.error.y = 2000;
   initial_guess.error.r = DEG2RAD(90);
-  TEST_ASSERT(course_to_fine_scan_matching_match(&scan, &occupancy, 0,
-                                                 &initial_guess, &pose));
-  TEST_ASSERT_INT_WITHIN(leaf_size / 2, gt_pose.x, pose.x);
-  TEST_ASSERT_INT_WITHIN(leaf_size / 2, gt_pose.y, pose.y);
-  TEST_ASSERT_FLOAT_WITHIN(1e-3f, gt_pose.r, pose.r);
+  TEST_ASSERT(course_to_fine_scan_matching_match(
+      &scan, &occupancy, 0, &initial_guess, &pose_estimate));
+  TEST_ASSERT_INT_WITHIN(leaf_size / 2, gt_pose.x, pose_estimate.pose.x);
+  TEST_ASSERT_INT_WITHIN(leaf_size / 2, gt_pose.y, pose_estimate.pose.y);
+  TEST_ASSERT_FLOAT_WITHIN(1e-3f, gt_pose.r, pose_estimate.pose.r);
 }
 
 void test_course_to_fine_scan_matching_max_id() {
@@ -261,7 +317,7 @@ void test_course_to_fine_scan_matching_max_id() {
   occupancy_quadtree_init(&occupancy, 0, 0, map_size, depth);
 
   lidar_sensor_t lidar;
-  lidar.max_range = 3000;
+  lidar.max_range = 1000;
   lidar.range_error = 5;
   lidar.bearing_error = 0.001f;
 
@@ -298,20 +354,20 @@ void test_course_to_fine_scan_matching_max_id() {
   // try to match the new scan against the map without max_id, with
   // an initial guess that is close to the new pose - it should
   // match with the new scan
-  pose_t pose_estimate;
+  robot_pose_t pose_estimate;
   TEST_ASSERT(course_to_fine_scan_matching_match(
       &new_scan, &occupancy, UINT16_MAX, &initial_guess, &pose_estimate));
-  TEST_ASSERT_INT_WITHIN(1, new_pose.x, pose_estimate.x);
-  TEST_ASSERT_INT_WITHIN(1, new_pose.y, pose_estimate.y);
-  TEST_ASSERT_FLOAT_WITHIN(1e-3f, new_pose.r, pose_estimate.r);
+  TEST_ASSERT_INT_WITHIN(1, new_pose.x, pose_estimate.pose.x);
+  TEST_ASSERT_INT_WITHIN(1, new_pose.y, pose_estimate.pose.y);
+  TEST_ASSERT_FLOAT_WITHIN(1e-3f, new_pose.r, pose_estimate.pose.r);
 
   // try to match the new scan against the map with max_id used to
   // ignore the new scan - it should match with the old scan
   TEST_ASSERT(course_to_fine_scan_matching_match(
       &new_scan, &occupancy, 0, &initial_guess, &pose_estimate));
-  TEST_ASSERT_INT_WITHIN(1, old_pose.x, pose_estimate.x);
-  TEST_ASSERT_INT_WITHIN(1, old_pose.y, pose_estimate.y);
-  TEST_ASSERT_FLOAT_WITHIN(1e-3f, old_pose.r, pose_estimate.r);
+  TEST_ASSERT_INT_WITHIN(1, old_pose.x, pose_estimate.pose.x);
+  TEST_ASSERT_INT_WITHIN(1, old_pose.y, pose_estimate.pose.y);
+  TEST_ASSERT_FLOAT_WITHIN(1e-3f, old_pose.r, pose_estimate.pose.r);
 }
 
 void setUp(void) {}
@@ -321,6 +377,7 @@ int main(void) {
   UNITY_BEGIN();
 
   RUN_TEST(test_weighted_scan_matching_simple);
+  RUN_TEST(test_scan_matching);
   RUN_TEST(test_course_to_fine_scan_matching);
   RUN_TEST(test_course_to_fine_scan_matching_max_id);
 

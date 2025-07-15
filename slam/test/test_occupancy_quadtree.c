@@ -74,7 +74,7 @@ void test_occupancy_quadtree_update_multiple() {
 
 void test_occupancy_quadtree_update_depth_2() {
   occupancy_quadtree_t quadtree;
-  occupancy_quadtree_init(&quadtree, 0, 0, 16, 2);
+  occupancy_quadtree_init(&quadtree, 0, 0, 2048, 2);
   occupancy_quadtree_update(&quadtree, -750, -750, 0, 1);  // log odds = 1
 
   TEST_ASSERT_EQUAL_INT(OCCUPANCY_MIXED, quadtree.occupancy);
@@ -85,9 +85,9 @@ void test_occupancy_quadtree_update_depth_2() {
   TEST_ASSERT_EQUAL_INT(OCCUPANCY_OCCUPIED,
                         quadtree.children[0]->children[0]->occupancy);
   TEST_ASSERT_EQUAL_FLOAT(1.0, quadtree.children[0]->children[0]->log_odds);
-  TEST_ASSERT_EQUAL_FLOAT(8, quadtree.children[0]->size);
-  TEST_ASSERT_EQUAL_FLOAT(-4, quadtree.children[0]->x);
-  TEST_ASSERT_EQUAL_FLOAT(4, quadtree.children[0]->children[0]->size);
+  TEST_ASSERT_EQUAL_INT(1024, quadtree.children[0]->size);
+  TEST_ASSERT_EQUAL_INT(-512, quadtree.children[0]->x);
+  TEST_ASSERT_EQUAL_INT(512, quadtree.children[0]->children[0]->size);
 
   TEST_ASSERT_TRUE(quadtree.children[0]->children[1] == NULL);
   TEST_ASSERT_TRUE(quadtree.children[0]->children[2] == NULL);
@@ -225,6 +225,43 @@ void test_occupancy_quadtree_nearest() {
                     distance);
 }
 
+void test_occupancy_k_nearest() {
+  occupancy_quadtree_t quadtree;
+  // leaf size = 512/2^5 = 16
+  occupancy_quadtree_init(&quadtree, 0, 0, 512, 5);
+  occupancy_quadtree_update(&quadtree, 255, 255, 0, 1);
+  occupancy_quadtree_update(&quadtree, -24, -24, 0, 1);
+  occupancy_quadtree_update(&quadtree, 72, -72, 0, 1);
+  occupancy_quadtree_update(&quadtree, 100, 100, 0, 1);
+
+  occupancy_quadtree_t *nearest3[3];
+  uint16_t found =
+      occupancy_quadtree_k_nearest(&quadtree, -24, -24, nearest3, 3);
+
+  TEST_ASSERT_EQUAL(3, found);
+
+  TEST_ASSERT_EQUAL(-24, nearest3[0]->x);
+  TEST_ASSERT_EQUAL(-24, nearest3[0]->y);
+
+  TEST_ASSERT_EQUAL(72, nearest3[1]->x);
+  TEST_ASSERT_EQUAL(-72, nearest3[1]->y);
+
+  TEST_ASSERT_EQUAL(104, nearest3[2]->x);
+  TEST_ASSERT_EQUAL(104, nearest3[2]->y);
+
+  occupancy_quadtree_t *nearest5[5];
+  found = occupancy_quadtree_k_nearest(&quadtree, -20, -20, nearest5, 5);
+  TEST_ASSERT_EQUAL(4, found);
+  TEST_ASSERT_EQUAL(-24, nearest5[0]->x);
+  TEST_ASSERT_EQUAL(-24, nearest5[0]->y);
+  TEST_ASSERT_EQUAL(72, nearest5[1]->x);
+  TEST_ASSERT_EQUAL(-72, nearest5[1]->y);
+  TEST_ASSERT_EQUAL(104, nearest5[2]->x);
+  TEST_ASSERT_EQUAL(104, nearest5[2]->y);
+
+  occupancy_quadtree_clear(&quadtree);
+}
+
 void test_occupancy_quadtree_raycast() {
   occupancy_quadtree_t quadtree;
   // leaf size = 512/2^5 = 16
@@ -281,6 +318,7 @@ int main(void) {
   RUN_TEST(test_occupancy_quadtree_update_depth_3);
   RUN_TEST(test_occupancy_quadtree_find);
   RUN_TEST(test_occupancy_quadtree_nearest);
+  RUN_TEST(test_occupancy_k_nearest);
   RUN_TEST(test_occupancy_quadtree_raycast);
 
   UNITY_END();

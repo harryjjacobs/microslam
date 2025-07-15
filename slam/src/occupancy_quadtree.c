@@ -215,6 +215,96 @@ occupancy_quadtree_t *occupancy_quadtree_nearest(occupancy_quadtree_t *quadtree,
   return nearest;
 }
 
+typedef struct {
+  occupancy_quadtree_t *node;
+  uint32_t distance_squared;
+} knn_entry_t;
+
+typedef struct {
+  knn_entry_t *entries;
+  uint16_t count;
+  uint16_t k;
+} knn_list_t;
+
+void knn_list_try_insert(knn_list_t *knn, occupancy_quadtree_t *node,
+                         uint32_t dist_sq) {
+  if (knn->count < knn->k) {
+    knn->entries[knn->count++] = (knn_entry_t){node, dist_sq};
+  } else {
+    // find current furthest (max distance)
+    uint16_t max_idx = 0;
+    for (uint16_t i = 1; i < knn->count; i++) {
+      if (knn->entries[i].distance_squared >
+          knn->entries[max_idx].distance_squared) {
+        max_idx = i;
+      }
+    }
+    if (dist_sq < knn->entries[max_idx].distance_squared) {
+      knn->entries[max_idx] = (knn_entry_t){node, dist_sq};
+    }
+  }
+}
+
+uint32_t knn_list_max_distance(const knn_list_t *knn) {
+  if (knn->count < knn->k) return UINT32_MAX;
+  uint32_t max_dist = 0;
+  for (uint16_t i = 0; i < knn->count; i++) {
+    if (knn->entries[i].distance_squared > max_dist) {
+      max_dist = knn->entries[i].distance_squared;
+    }
+  }
+  return max_dist;
+}
+
+void occupancy_quadtree_knn_rec(occupancy_quadtree_t *quadtree, int16_t x,
+                                int16_t y, knn_list_t *knn) {
+  if (quadtree == NULL) return;
+
+  uint32_t max_allowed_dist = knn_list_max_distance(knn);
+
+  uint32_t box_dist_sq =
+      occupancy_quadtree_node_min_dist_squared(quadtree, x, y);
+  if (box_dist_sq > max_allowed_dist) return;
+
+  if (quadtree->depth >= quadtree->max_depth) {  // leaf node
+    uint32_t dx = (uint32_t)abs(x - quadtree->x);
+    uint32_t dy = (uint32_t)abs(y - quadtree->y);
+    uint32_t dist = dx * dx + dy * dy;
+    knn_list_try_insert(knn, quadtree, dist);
+    return;
+  }
+
+  for (size_t i = 0; i < 4; i++) {
+    occupancy_quadtree_knn_rec(quadtree->children[i], x, y, knn);
+  }
+}
+
+uint16_t occupancy_quadtree_k_nearest(occupancy_quadtree_t *quadtree, int16_t x,
+                                      int16_t y, occupancy_quadtree_t **nearest,
+                                      uint16_t k) {
+  if (k == 0) {
+    ERROR("Invalid parameters for occupancy_quadtree_k_nearest");
+    return 0;
+  }
+
+  knn_list_t knn;
+  knn.entries = (knn_entry_t *)malloc(k * sizeof(knn_entry_t));
+  if (knn.entries == NULL) {
+    FATAL("Failed to allocate memory for knn entries");
+  }
+
+  knn.count = 0;
+  knn.k = k;
+  occupancy_quadtree_knn_rec(quadtree, x, y, &knn);
+  uint16_t found = knn.count < k ? knn.count : k;
+  for (uint16_t i = 0; i < found; i++) {
+    nearest[i] = knn.entries[i].node;
+  }
+  free(knn.entries);
+
+  return found;
+}
+
 void occupancy_quadtree_iterate_leafs_depth_first(
     occupancy_quadtree_t *quadtree, void *data,
     void (*callback)(occupancy_quadtree_t *quadtree, void *data)) {
