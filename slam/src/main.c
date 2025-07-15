@@ -1,5 +1,6 @@
 #define _POSIX_C_SOURCE 199309L  // for clock_gettime
 #include <math.h>
+#include <slam/course_to_fine_scan_matching.h>
 #include <slam/logging.h>
 #include <slam/map.h>
 #include <slam/scan.h>
@@ -74,11 +75,25 @@ void move(robot_pose_t *state, motion_t *motion) {
   state->pose.r = rotate(state->pose.r, motion->dr);
 }
 
+bool check_relocalise(robot_pose_t *current_state,
+                      robot_pose_t *estimated_state, float relocalise_dist_t,
+                      float relocalise_dist_r) {
+  float dist_t = hypotf(current_state->pose.x - estimated_state->pose.x,
+                        current_state->pose.y - estimated_state->pose.y);
+  float dist_r = fabsf(current_state->pose.r - estimated_state->pose.r);
+  return (dist_t > relocalise_dist_t || dist_r > relocalise_dist_r);
+}
+
 int main() {
   // the distance from the previous update at which the scan matching will
   // update the pose
   const uint16_t update_distance = 50;
   const float update_angle = 0.1f;
+
+  // the maximum distance from the current pose estimate at which the scan
+  // matching pose estimate will be considered valid
+  const float relocalise_dist_t = 100.0f;
+  const float relocalise_dist_r = 0.2f;
 
   slam_viewer_t viewer;
   slam_viewer_init(&viewer);
@@ -207,16 +222,28 @@ int main() {
         } else if (scan.hits > 5) {
           robot_pose_t pose_estimate;
           if (scan_matching_match(&scan, &robot.lidar, &occ, &robot.state.pose,
-                                  &pose_estimate, 100)) {
+                                  &pose_estimate, 100) &&
+              !check_relocalise(&robot.state, &pose_estimate, relocalise_dist_t,
+                                relocalise_dist_r)) {
             INFO("scan match pose estimate: %d %d %f", pose_estimate.pose.x,
                  pose_estimate.pose.y, pose_estimate.pose.r);
-            robot.state = pose_estimate;
 
+            // update the robot pose
+            robot.state = pose_estimate;
             // update the occupancy grid
-            map_add_scan(&occ, &scan, &robot.state.pose, 0, 10);
+            map_add_scan(&occ, &scan, &robot.state.pose, 0, 1.0);
+          } else {
+            INFO("scan match failed, relocalising");
+            if (course_to_fine_scan_matching_match(
+                    &scan, &occ, UINT16_MAX, &robot.state, &pose_estimate)) {
+              INFO("course to fine scan match pose estimate: %d %d %f",
+                   pose_estimate.pose.x, pose_estimate.pose.y,
+                   pose_estimate.pose.r);
+              // update the robot pose
+              robot.state = pose_estimate;
+            }
           }
         }
-
         INFO("ground truth pose: %d %d %f", gt_state.pose.x, gt_state.pose.y,
              gt_state.pose.r);
         INFO("robot pose: %d %d %f", robot.state.pose.x, robot.state.pose.y,
@@ -234,8 +261,8 @@ int main() {
     slam_viewer_draw_robot(&gt_state.pose, 0, 0, 1, 0.5);
     slam_viewer_draw_robot(&robot.state.pose, 0, 1, 0, 1);
     slam_viewer_draw_error(&robot.state.pose, &robot.state.error, 0, 0, 1, 0.5);
-    INFO("error: %d %d %f", robot.state.error.x, robot.state.error.y,
-         robot.state.error.r);
+    // INFO("error: %d %d %f", robot.state.error.x, robot.state.error.y,
+    //      robot.state.error.r);
     slam_viewer_end_draw(&viewer);
 
     // sleep
