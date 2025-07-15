@@ -94,7 +94,7 @@ void generate_wall_scan(scan_t *gt_scan, float robot_x, float robot_y,
     float dx = cosf(global_angle);
     float dy = sinf(global_angle);
 
-    float distance = INFINITY;
+    float distance = 0;
 
     // Handle rays roughly pointing towards wall (avoid division by zero)
     if (fabsf(dx) > 1e-6f) {
