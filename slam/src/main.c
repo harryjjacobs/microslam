@@ -118,6 +118,9 @@ int main() {
   robot.state.pose.x = 75;
   robot.state.pose.y = 0;
   robot.state.pose.r = 0;
+  robot.state.error.x = 0;
+  robot.state.error.y = 0;
+  robot.state.error.r = 0;
 
   robot_pose_t gt_state;
   gt_state.pose.x = 75;
@@ -147,8 +150,8 @@ int main() {
     gt_motion.dx = 0;
     gt_motion.dy = 0;
     gt_motion.dr = 0;
-    gt_motion.error_x = 1.0f;  // mm
-    gt_motion.error_y = 1.0f;  // mm
+    gt_motion.error_x = 0.1;  // mm
+    gt_motion.error_y = 0.1;  // mm
     gt_motion.error_r = 0.05;  // rad
 
     motion_t motion;
@@ -197,15 +200,16 @@ int main() {
       // move
       move(&gt_state, &gt_motion);
       move(&robot.state, &motion);
-      robot.state.error.x += gt_motion.error_x;
-      robot.state.error.y += gt_motion.error_y;
-      robot.state.error.r += gt_motion.error_r;
+
 
       if ((hypotf(robot.state.pose.x - prev_update_pose.x,
                   robot.state.pose.y - prev_update_pose.y) >=
            update_distance) ||
           (fabsf(robot.state.pose.r - prev_update_pose.r)) >= update_angle) {
         prev_update_pose = robot.state.pose;
+      robot.state.error.x += gt_motion.error_x * update_distance;
+      robot.state.error.y += gt_motion.error_y * update_distance;
+      robot.state.error.r += gt_motion.error_r * update_angle;
 
         scan_reset(&scan);
         // the scan is generated from the ground truth scan
