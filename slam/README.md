@@ -10,6 +10,10 @@ For visualisation and testing, the following dependencies are required:
 
 - libglfw3-dev
 
+Please see the [pixi.toml](pixi.toml) file for a full list of dependencies.
+
+## Testing
+
 This project can be used with [Pixi](https://pixi.sh/latest/) so that dependencies can be managed automatically in a
 reproducable and isolated environment. To use Pixi, install it and then run:
 
