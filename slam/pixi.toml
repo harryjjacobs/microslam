@@ -6,8 +6,10 @@ platforms = ["linux-64"]
 version = "0.1.0"
 
 [tasks]
-build = "cmake -B build -S . -G Ninja && cmake --build build"
-test = "cd build && ctest --output-on-failure"
+build_debug = "cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Debug && cmake --build build"
+build_release = "cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release && cmake --build build"
+test = { cmd = "ctest --test-dir build --output-on-failure", depends-on = ["build_debug"] }
+clean = "rm -rf build"
 app = "build/slam_test_app"
 
 [dependencies]
