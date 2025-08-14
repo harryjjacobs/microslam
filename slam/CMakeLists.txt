@@ -33,11 +33,13 @@ add_library(slam STATIC
     src/default_logging.c
     src/loop_closure.c
     src/map.c
+    src/mat.c
     src/occupancy_quadtree.c
     src/scan.c
     src/serialisation.c
     src/system.c
     src/utils.c
+    src/mat.c
     src/weighted_scan_matching.c
     thirdparty/log/log.c
 )

@@ -1,5 +1,6 @@
 set(TESTS
     ${CMAKE_CURRENT_SOURCE_DIR}/test_map.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_mat.c
     ${CMAKE_CURRENT_SOURCE_DIR}/test_occupancy_quadtree.c
     ${CMAKE_CURRENT_SOURCE_DIR}/test_scan_matching.c
     ${CMAKE_CURRENT_SOURCE_DIR}/test_serialisation.c
