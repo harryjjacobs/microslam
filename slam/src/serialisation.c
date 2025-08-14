@@ -7,7 +7,8 @@
 #include "slam/logging.h"
 
 static int buffer_grow(serialisation_buffer_t *buf, size_t min_capacity) {
-  if (buf->capacity >= min_capacity) return 0;
+  if (buf->capacity >= min_capacity)
+    return 0;
 
   size_t new_capacity = buf->capacity > 0 ? buf->capacity : 64;
   while (new_capacity < min_capacity) {
@@ -56,6 +57,11 @@ static int append_u16_be(serialisation_buffer_t *buf, uint16_t value) {
   return buffer_append(buf, data, 2);
 }
 
+static int append_s16_be(serialisation_buffer_t *buf, int16_t value) {
+  uint16_t u_value = (uint16_t)value;
+  return append_u16_be(buf, u_value);
+}
+
 static int append_u32_be(serialisation_buffer_t *buf, uint32_t value) {
   char data[4] = {(char)((value >> 24) & 0xFF), (char)((value >> 16) & 0xFF),
                   (char)((value >> 8) & 0xFF), (char)(value & 0xFF)};
@@ -82,7 +88,8 @@ static int read_u8(const serialisation_buffer_t *buf, size_t *offset,
 static int read_u16_be(const serialisation_buffer_t *buf, size_t *offset,
                        uint16_t *value) {
   char data[2];
-  if (buffer_read(buf, offset, data, 2) < 0) return -1;
+  if (buffer_read(buf, offset, data, 2) < 0)
+    return -1;
   *value = ((uint8_t)data[0] << 8) | (uint8_t)data[1];
   return 0;
 }
@@ -90,19 +97,22 @@ static int read_u16_be(const serialisation_buffer_t *buf, size_t *offset,
 static int read_s16_be(const serialisation_buffer_t *buf, size_t *offset,
                        int16_t *value) {
   uint16_t u_value;
-  if (read_u16_be(buf, offset, &u_value) < 0) return -1;
+  if (read_u16_be(buf, offset, &u_value) < 0)
+    return -1;
   *value = (int16_t)u_value;
   return 0;
 }
 
-static int read_u32_be(const serialisation_buffer_t *buf, size_t *offset,
-                       uint32_t *value) {
-  char data[4];
-  if (buffer_read(buf, offset, data, 4) < 0) return -1;
-  *value = ((uint8_t)data[0] << 24) | ((uint8_t)data[1] << 16) |
-           ((uint8_t)data[2] << 8) | (uint8_t)data[3];
-  return 0;
-}
+// currently unused
+// static int read_u32_be(const serialisation_buffer_t *buf, size_t *offset,
+//                        uint32_t *value) {
+//   char data[4];
+//   if (buffer_read(buf, offset, data, 4) < 0)
+//     return -1;
+//   *value = ((uint8_t)data[0] << 24) | ((uint8_t)data[1] << 16) |
+//            ((uint8_t)data[2] << 8) | (uint8_t)data[3];
+//   return 0;
+// }
 
 // currently unused
 // static int read_float_be(const serialisation_buffer_t *buf, size_t *offset,
@@ -136,10 +146,11 @@ int write_header(serialisation_buffer_t *buf, const char id[4]) {
   buf->length = 0;
 
   // 4 for ID + 2 for length placeholder
-  if (buffer_grow(buf, 6) < 0) return -1;
+  if (buffer_grow(buf, 6) < 0)
+    return -1;
 
   memcpy(buf->data, id, 4);
-  buf->length = 6;  // include length placeholder bytes
+  buf->length = 6; // include length placeholder bytes
 
   // zero the length bytes
   buf->data[4] = 0;
@@ -189,18 +200,27 @@ static int serialise_quadtree_rec(const occupancy_quadtree_t *tree,
     return append_u8(buf, 0);
   }
 
-  if (append_u8(buf, 1) < 0) return -1;
+  if (append_u8(buf, 1) < 0)
+    return -1;
 
-  if (append_u8(buf, tree->max_depth) < 0) return -1;
-  if (append_float_be(buf, tree->size) < 0) return -1;
-  if (append_float_be(buf, tree->x) < 0) return -1;
-  if (append_float_be(buf, tree->y) < 0) return -1;
-  if (append_u8(buf, tree->depth) < 0) return -1;
-  if (append_u32_be(buf, tree->occupancy) < 0) return -1;
-  if (append_float_be(buf, tree->log_odds) < 0) return -1;
+  if (append_u8(buf, tree->max_depth) < 0)
+    return -1;
+  if (append_u16_be(buf, tree->size) < 0)
+    return -1;
+  if (append_s16_be(buf, tree->x) < 0)
+    return -1;
+  if (append_s16_be(buf, tree->y) < 0)
+    return -1;
+  if (append_u8(buf, tree->depth) < 0)
+    return -1;
+  if (append_u8(buf, tree->occupancy) < 0)
+    return -1;
+  if (append_float_be(buf, tree->log_odds) < 0)
+    return -1;
 
   for (size_t i = 0; i < 4; i++) {
-    if (serialise_quadtree_rec(tree->children[i], buf) < 0) return -1;
+    if (serialise_quadtree_rec(tree->children[i], buf) < 0)
+      return -1;
   }
 
   return 0;
@@ -237,14 +257,19 @@ static int deserialise_quadtree_rec(const serialisation_buffer_t *buf,
     }
   }
 
-  if (read_u8(buf, offset, &(*tree)->max_depth) < 0) return -1;
-  if (read_u16_be(buf, offset, &(*tree)->size) < 0) return -1;
-  if (read_s16_be(buf, offset, &(*tree)->x) < 0) return -1;
-  if (read_s16_be(buf, offset, &(*tree)->y) < 0) return -1;
-  if (read_u8(buf, offset, &(*tree)->depth) < 0) return -1;
+  if (read_u8(buf, offset, &(*tree)->max_depth) < 0)
+    return -1;
+  if (read_u16_be(buf, offset, &(*tree)->size) < 0)
+    return -1;
+  if (read_s16_be(buf, offset, &(*tree)->x) < 0)
+    return -1;
+  if (read_s16_be(buf, offset, &(*tree)->y) < 0)
+    return -1;
+  if (read_u8(buf, offset, &(*tree)->depth) < 0)
+    return -1;
 
-  uint32_t occupancy;
-  if (read_u32_be(buf, offset, &occupancy) < 0) {
+  uint8_t occupancy;
+  if (read_u8(buf, offset, &occupancy) < 0) {
     free(*tree);
     return -1;
   }
@@ -280,7 +305,8 @@ int deserialise_quadtree(const serialisation_buffer_t *buf, size_t *offset,
   }
 
   int result = deserialise_quadtree_rec(buf, offset, &tree);
-  if (result < 0) return result;
+  if (result < 0)
+    return result;
   if (*offset != buf->length) {
     ERROR("Deserialisation did not consume the entire buffer");
     return -1;
@@ -294,10 +320,12 @@ int serialise_scan(const scan_t *scan, serialisation_buffer_t *buf) {
     return -1;
   }
 
-  if (append_u16_be(buf, (uint16_t)scan->hits) < 0) return -1;
+  if (append_u16_be(buf, (uint16_t)scan->hits) < 0)
+    return -1;
 
   for (int i = 0; i < 360; i++) {
-    if (append_float_be(buf, scan->range[i]) < 0) return -1;
+    if (append_float_be(buf, scan->range[i]) < 0)
+      return -1;
   }
 
   return 0;
@@ -317,10 +345,12 @@ int deserialise_scan(const serialisation_buffer_t *buf, size_t *offset,
     return -1;
   }
 
-  if (read_u16_be(buf, offset, &scan->hits) < 0) return -1;
+  if (read_u16_be(buf, offset, &scan->hits) < 0)
+    return -1;
 
   for (int i = 0; i < 360; i++) {
-    if (read_u16_be(buf, offset, &scan->range[i]) < 0) return -1;
+    if (read_u16_be(buf, offset, &scan->range[i]) < 0)
+      return -1;
   }
 
   return 0;
