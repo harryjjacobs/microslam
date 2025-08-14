@@ -8,6 +8,7 @@ idf_component_register(
         ${SLAM_SRC_DIR}/src/scan.c
         ${SLAM_SRC_DIR}/src/serialisation.c
         ${SLAM_SRC_DIR}/src/utils.c
+        ${SLAM_SRC_DIR}/src/mat.c
     INCLUDE_DIRS
         include
         ${SLAM_SRC_DIR}/include
