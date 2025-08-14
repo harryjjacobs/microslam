@@ -91,7 +91,7 @@ bool loop_closure_check(loop_closure_t *lc, const robot_pose_t *pose,
   // calculate the relative pose
   relative_pose->pose.x = new_pose.pose.x - pose->pose.x;
   relative_pose->pose.y = new_pose.pose.y - pose->pose.y;
-  relative_pose->pose.r = clamp_rotation(new_pose.pose.r - pose->pose.r);
+  relative_pose->pose.r = wrap_angle(new_pose.pose.r - pose->pose.r);
 
   return true;
 }

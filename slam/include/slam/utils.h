@@ -29,7 +29,7 @@
  * @param value
  * @return float
  */
-float clamp_rotation(float value);
+float wrap_angle(float value);
 
 /**
  * @brief Rotate a value by a given rotation

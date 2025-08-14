@@ -213,7 +213,7 @@ bool scan_matching_match(const scan_t *current_scan,
     t_y = nty;
 
     float dr = delta_theta_num / delta_theta_den;
-    phi = clamp_rotation(phi + dr);
+    phi = wrap_angle(phi + dr);
 
     DEBUG("Iter %d: t = (%.4f, %.4f), phi = %.4f, dtx = %.4f, dty = %.4f, dr = "
           "%.4f",

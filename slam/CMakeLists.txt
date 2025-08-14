@@ -31,6 +31,7 @@ endif()
 add_library(slam STATIC 
     src/course_to_fine_scan_matching.c
     src/default_logging.c
+    src/ekf.c
     src/loop_closure.c
     src/map.c
     src/mat.c
@@ -39,7 +40,6 @@ add_library(slam STATIC
     src/serialisation.c
     src/system.c
     src/utils.c
-    src/mat.c
     src/weighted_scan_matching.c
     thirdparty/log/log.c
 )

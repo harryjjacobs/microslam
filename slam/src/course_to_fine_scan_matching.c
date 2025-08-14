@@ -44,7 +44,7 @@ bool course_to_fine_scan_matching_match(const scan_t *scan,
           pose_t candidate = {
               .x = best_pose.x + ix * step_x,
               .y = best_pose.y + iy * step_y,
-              .r = clamp_rotation(best_pose.r + itheta * step_r),
+              .r = wrap_angle(best_pose.r + itheta * step_r),
           };
 
           float score =

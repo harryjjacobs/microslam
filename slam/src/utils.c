@@ -3,7 +3,7 @@
 #include <slam/utils.h>
 #include <stdio.h>
 
-float clamp_rotation(float value) {
+float wrap_angle(float value) {
   while (value > PI)
     value -= TWO_PI;
   while (value < -PI)
@@ -20,7 +20,7 @@ float clamp_rotation(float value) {
  */
 float rotate(float value, float rotation) {
   value += rotation;
-  return clamp_rotation(value);
+  return wrap_angle(value);
 }
 
 float random_uniformf() { return (float)rand() / RAND_MAX; }
