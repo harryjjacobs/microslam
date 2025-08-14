@@ -111,24 +111,25 @@ int main() {
   scan_reset(&scan);
   generate_gt_scan(&gt_scan);
 
-  robot_t robot;
+  robot_model_t robot;
   robot.lidar.max_range = 1000;
   robot.lidar.range_error = 5;
   robot.lidar.bearing_error = 0.001;
 
-  robot.state.pose.x = 75;
-  robot.state.pose.y = 0;
-  robot.state.pose.r = 0;
-  robot.state.error.x = 0;
-  robot.state.error.y = 0;
-  robot.state.error.r = 0;
+  robot_pose_t state;
+  state.pose.x = 75;
+  state.pose.y = 0;
+  state.pose.r = 0;
+  state.error.x = 0;
+  state.error.y = 0;
+  state.error.r = 0;
 
   robot_pose_t gt_state;
   gt_state.pose.x = 75;
   gt_state.pose.y = 0;
   gt_state.pose.r = 0;
 
-  pose_t prev_update_pose = robot.state.pose;
+  pose_t prev_update_pose = state.pose;
 
   double dt;
   struct timespec prev_time, current_time;
@@ -200,16 +201,15 @@ int main() {
     if (key != slam_viewer_key_none) {
       // move
       move(&gt_state, &gt_motion);
-      move(&robot.state, &motion);
+      move(&state, &motion);
 
-      if ((hypotf(robot.state.pose.x - prev_update_pose.x,
-                  robot.state.pose.y - prev_update_pose.y) >=
-           update_distance) ||
-          (fabsf(robot.state.pose.r - prev_update_pose.r)) >= update_angle) {
-        prev_update_pose = robot.state.pose;
-        robot.state.error.x += gt_motion.error_x * update_distance;
-        robot.state.error.y += gt_motion.error_y * update_distance;
-        robot.state.error.r += gt_motion.error_r * update_angle;
+      if ((hypotf(state.pose.x - prev_update_pose.x,
+                  state.pose.y - prev_update_pose.y) >= update_distance) ||
+          (fabsf(state.pose.r - prev_update_pose.r)) >= update_angle) {
+        prev_update_pose = state.pose;
+        state.error.x += gt_motion.error_x * update_distance;
+        state.error.y += gt_motion.error_y * update_distance;
+        state.error.r += gt_motion.error_r * update_angle;
 
         scan_reset(&scan);
         // the scan is generated from the ground truth scan
@@ -222,39 +222,37 @@ int main() {
         if (entropy < map_leaf_size * 0.0001f) {
           INFO("map is empty, skipping scan matching");
           // update the occupancy grid
-          map_add_scan(&occ, &scan, &robot.state.pose, 0, 1.0);
+          map_add_scan(&occ, &scan, &state.pose, 0, 1.0);
         } else if (scan.hits > 5) {
           robot_pose_t pose_estimate;
-          if (scan_matching_match(&scan, &robot.lidar, &occ, &robot.state.pose,
+          if (scan_matching_match(&scan, &robot.lidar, &occ, &state.pose,
                                   &pose_estimate, 100) &&
-              !check_relocalise(&robot.state, &pose_estimate, relocalise_dist_t,
+              !check_relocalise(&state, &pose_estimate, relocalise_dist_t,
                                 relocalise_dist_r)) {
             INFO("scan match pose estimate: %d %d %f", pose_estimate.pose.x,
                  pose_estimate.pose.y, pose_estimate.pose.r);
 
             // update the robot pose
-            robot.state = pose_estimate;
+            state = pose_estimate;
             // update the occupancy grid
-            map_add_scan(&occ, &scan, &robot.state.pose, 0, 1.0);
+            map_add_scan(&occ, &scan, &state.pose, 0, 1.0);
           } else {
             INFO("scan match failed, relocalising");
-            if (course_to_fine_scan_matching_match(
-                    &scan, &occ, UINT16_MAX, &robot.state, &pose_estimate)) {
+            if (course_to_fine_scan_matching_match(&scan, &occ, UINT16_MAX,
+                                                   &state, &pose_estimate)) {
               INFO("course to fine scan match pose estimate: %d %d %f",
                    pose_estimate.pose.x, pose_estimate.pose.y,
                    pose_estimate.pose.r);
               // update the robot pose
-              robot.state = pose_estimate;
+              state = pose_estimate;
             }
           }
         }
         INFO("ground truth pose: %d %d %f", gt_state.pose.x, gt_state.pose.y,
              gt_state.pose.r);
-        INFO("robot pose: %d %d %f", robot.state.pose.x, robot.state.pose.y,
-             robot.state.pose.r);
-        INFO("difference: %d %d %f", robot.state.pose.x - gt_state.pose.x,
-             robot.state.pose.y - gt_state.pose.y,
-             robot.state.pose.r - gt_state.pose.r);
+        INFO("robot pose: %d %d %f", state.pose.x, state.pose.y, state.pose.r);
+        INFO("difference: %d %d %f", state.pose.x - gt_state.pose.x,
+             state.pose.y - gt_state.pose.y, state.pose.r - gt_state.pose.r);
 
         slam_viewer_draw_scan(&scan, &gt_state.pose, 0, 0, 1);
       }
@@ -263,10 +261,10 @@ int main() {
     // draw
     slam_viewer_draw_occupancy(&occ);
     slam_viewer_draw_robot(&gt_state.pose, 0, 0, 1, 0.5);
-    slam_viewer_draw_robot(&robot.state.pose, 0, 1, 0, 1);
-    slam_viewer_draw_error(&robot.state.pose, &robot.state.error, 0, 0, 1, 0.5);
-    // INFO("error: %d %d %f", robot.state.error.x, robot.state.error.y,
-    //      robot.state.error.r);
+    slam_viewer_draw_robot(&state.pose, 0, 1, 0, 1);
+    slam_viewer_draw_error(&state.pose, &state.error, 0, 0, 1, 0.5);
+    // INFO("error: %d %d %f", state.error.x, state.error.y,
+    //      state.error.r);
     slam_viewer_end_draw(&viewer);
 
     // sleep

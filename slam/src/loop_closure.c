@@ -49,7 +49,7 @@ void loop_closure_clear(loop_closure_t *lc) {
 
 bool loop_closure_check(loop_closure_t *lc, const robot_pose_t *pose,
                         const scan_t *scan, occupancy_quadtree_t *occ,
-                        const slam_system_params_t *params,
+                        const loop_closure_params_t *params,
                         robot_pose_t *relative_pose) {
   if (lc->trajectory_size >= lc->trajectory_capacity) {
     // reallocate memory for the trajectory
@@ -66,17 +66,16 @@ bool loop_closure_check(loop_closure_t *lc, const robot_pose_t *pose,
   }
 
   if (lc->ids[lc->trajectory_size - 1] - lc->last_key_pose_id <
-      params->loop_closure_min_interval) {
+      params->min_interval) {
     return false; // not enough distance since last loop closure
   }
 
   // match the latest pose against the map
   // TODO: do we need to update the error of the pose to widen the search area?
   robot_pose_t new_pose;
-  if (!course_to_fine_scan_matching_match(scan, occ,
-                                          lc->ids[lc->trajectory_size - 1] -
-                                              params->loop_closure_min_interval,
-                                          pose, &new_pose)) {
+  if (!course_to_fine_scan_matching_match(
+          scan, occ, lc->ids[lc->trajectory_size - 1] - params->min_interval,
+          pose, &new_pose)) {
     return false; // scan matching failed
   }
 
@@ -97,7 +96,7 @@ bool loop_closure_check(loop_closure_t *lc, const robot_pose_t *pose,
 }
 
 bool loop_closure_apply(loop_closure_t *lc, occupancy_quadtree_t *occ,
-                        const slam_system_params_t *params,
+                        const loop_closure_params_t *params,
                         const robot_pose_t *relative_pose) {
   if (lc->trajectory_size < 2) {
     return false; // not enough poses to apply loop closure

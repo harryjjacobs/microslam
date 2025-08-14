@@ -12,6 +12,29 @@
 
 #include "types.h"
 
+typedef enum {
+  OCCUPANCY_FREE = 0,     // free space
+  OCCUPANCY_OCCUPIED = 1, // occupied space
+  OCCUPANCY_MIXED = 2,    // mixed state (some children occupied, some free)
+} occupancy_state_t;
+
+typedef struct occupancy_quadtree_t {
+  uint16_t id;
+
+  int16_t x;
+  int16_t y;
+  uint16_t size;
+  int16_t log_odds; // keep as int16_t to save space (assuming range
+                    // -1000..1000 fits)
+  uint8_t depth;
+  uint8_t max_depth;
+  uint8_t occupancy;
+
+  // TODO: find a way of referencing the children in a more compact way using
+  // some kind of area allocator/memory pool
+  struct occupancy_quadtree_t *children[4];
+} occupancy_quadtree_t;
+
 /**
  * @brief Initialize an occupancy quadtree with the given parameters. The
  * quadtree is initialized with a center point (x, y), a size, and a maximum

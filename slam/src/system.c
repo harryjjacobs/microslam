@@ -143,7 +143,7 @@ static slam_localisation_result_t localise(slam_system_t *system,
   }
 
   robot_pose_t pose_estimate;
-  if (scan_matching_match(scan, &system->lidar, &system->map,
+  if (scan_matching_match(scan, &system->robot_model.lidar, &system->map,
                           &system->pose.pose, &pose_estimate,
                           system->params.scan_matching_iterations) &&
       !should_relocalise(&system->params, &system->pose, &pose_estimate)) {

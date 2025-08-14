@@ -23,6 +23,7 @@
 #include <stdint.h>
 
 #include "occupancy_quadtree.h"
+#include "scan.h"
 #include "types.h"
 
 #define SLAM_SERIALISATION_ID_LEN 4

@@ -8,9 +8,10 @@
 #ifndef SLAM_MAP_H_
 #define SLAM_MAP_H_
 
-#include "occupancy_quadtree.h"
-#include "types.h"
-#include "utils.h"
+#include <slam/occupancy_quadtree.h>
+#include <slam/scan.h>
+#include <slam/types.h>
+#include <slam/utils.h>
 
 /**
  * @brief Update the map using a scan and robot pose

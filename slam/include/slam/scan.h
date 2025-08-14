@@ -14,6 +14,11 @@
 
 #include "types.h"
 
+typedef struct scan_t {
+  uint16_t range[360];
+  uint16_t hits; // the number of valid (non-zero) hits in the scan
+} scan_t;
+
 void scan_reset(scan_t *scan);
 
 void scan_reset(scan_t *scan);

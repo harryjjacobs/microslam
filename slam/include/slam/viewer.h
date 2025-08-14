@@ -2,6 +2,8 @@
 #define SLAM_VIEWER_H_
 
 #include <GLFW/glfw3.h>
+#include <slam/occupancy_quadtree.h>
+#include <slam/scan.h>
 #include <slam/types.h>
 #include <slam/utils.h>
 
