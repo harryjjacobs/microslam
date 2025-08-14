@@ -161,8 +161,9 @@ occupancy_quadtree_t *occupancy_quadtree_find(occupancy_quadtree_t *quadtree,
   return occupancy_quadtree_find(quadtree->children[quad_idx], x, y);
 }
 
-uint32_t occupancy_quadtree_node_min_dist_squared(
-    occupancy_quadtree_t *quadtree, int16_t x, int16_t y) {
+uint32_t
+occupancy_quadtree_node_min_dist_squared(occupancy_quadtree_t *quadtree,
+                                         int16_t x, int16_t y) {
   int16_t half_size = quadtree->size >> 1;
   int16_t min_x = quadtree->x - half_size;
   int16_t max_x = quadtree->x + half_size;
@@ -184,9 +185,10 @@ void occupancy_quadtree_nearest_rec(occupancy_quadtree_t *quadtree, int16_t x,
   // return early if the distance to the box is greater than the current
   uint32_t box_dist_sq =
       occupancy_quadtree_node_min_dist_squared(quadtree, x, y);
-  if (box_dist_sq > *distance) return;
+  if (box_dist_sq > *distance)
+    return;
 
-  if (quadtree->depth >= quadtree->max_depth) {  // leaf node
+  if (quadtree->depth >= quadtree->max_depth) { // leaf node
     uint32_t dx = (uint32_t)abs(x - quadtree->x);
     uint32_t dy = (uint32_t)abs(y - quadtree->y);
     uint32_t dist = dx * dx + dy * dy;
@@ -246,7 +248,8 @@ void knn_list_try_insert(knn_list_t *knn, occupancy_quadtree_t *node,
 }
 
 uint32_t knn_list_max_distance(const knn_list_t *knn) {
-  if (knn->count < knn->k) return UINT32_MAX;
+  if (knn->count < knn->k)
+    return UINT32_MAX;
   uint32_t max_dist = 0;
   for (uint16_t i = 0; i < knn->count; i++) {
     if (knn->entries[i].distance_squared > max_dist) {
@@ -258,15 +261,17 @@ uint32_t knn_list_max_distance(const knn_list_t *knn) {
 
 void occupancy_quadtree_knn_rec(occupancy_quadtree_t *quadtree, int16_t x,
                                 int16_t y, knn_list_t *knn) {
-  if (quadtree == NULL) return;
+  if (quadtree == NULL)
+    return;
 
   uint32_t max_allowed_dist = knn_list_max_distance(knn);
 
   uint32_t box_dist_sq =
       occupancy_quadtree_node_min_dist_squared(quadtree, x, y);
-  if (box_dist_sq > max_allowed_dist) return;
+  if (box_dist_sq > max_allowed_dist)
+    return;
 
-  if (quadtree->depth >= quadtree->max_depth) {  // leaf node
+  if (quadtree->depth >= quadtree->max_depth) { // leaf node
     uint32_t dx = (uint32_t)abs(x - quadtree->x);
     uint32_t dy = (uint32_t)abs(y - quadtree->y);
     uint32_t dist = dx * dx + dy * dy;

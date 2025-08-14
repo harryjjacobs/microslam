@@ -62,22 +62,22 @@ bool loop_closure_check(loop_closure_t *lc, const robot_pose_t *pose,
   lc->trajectory_size++;
 
   if (lc->trajectory_size < 2) {
-    return false;  // not enough poses for loop closure
+    return false; // not enough poses for loop closure
   }
 
   if (lc->ids[lc->trajectory_size - 1] - lc->last_key_pose_id <
       params->loop_closure_min_interval) {
-    return false;  // not enough distance since last loop closure
+    return false; // not enough distance since last loop closure
   }
 
   // match the latest pose against the map
   // TODO: do we need to update the error of the pose to widen the search area?
   robot_pose_t new_pose;
-  if (!course_to_fine_scan_matching_match(
-          scan, occ,
-          lc->ids[lc->trajectory_size - 1] - params->loop_closure_min_interval,
-          pose, &new_pose)) {
-    return false;  // scan matching failed
+  if (!course_to_fine_scan_matching_match(scan, occ,
+                                          lc->ids[lc->trajectory_size - 1] -
+                                              params->loop_closure_min_interval,
+                                          pose, &new_pose)) {
+    return false; // scan matching failed
   }
 
   INFO("Loop closure detected at pose %zu with relative pose (%d, %d, %.6f)!",
@@ -100,9 +100,9 @@ bool loop_closure_apply(loop_closure_t *lc, occupancy_quadtree_t *occ,
                         const slam_system_params_t *params,
                         const robot_pose_t *relative_pose) {
   if (lc->trajectory_size < 2) {
-    return false;  // not enough poses to apply loop closure
+    return false; // not enough poses to apply loop closure
   }
 
   // TODO: pose graph optimisation to correct the trajectory
-  return true;  // placeholder for actual implementation
+  return true; // placeholder for actual implementation
 }

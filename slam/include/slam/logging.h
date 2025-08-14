@@ -39,45 +39,45 @@
 #define SLAM_LOG_LEVEL SLAM_LOG_LEVEL_DEBUG
 #endif
 
-void logging_log(int level, const char* file, int line, const char* fmt, ...);
+void logging_log(int level, const char *file, int line, const char *fmt, ...);
 
 #if SLAM_LOG_LEVEL <= SLAM_LOG_LEVEL_TRACE
-#define TRACE(...) \
+#define TRACE(...)                                                             \
   logging_log(SLAM_LOG_LEVEL_TRACE, __FILE__, __LINE__, __VA_ARGS__)
 #else
 #define TRACE(...)
 #endif
 
 #if SLAM_LOG_LEVEL <= SLAM_LOG_LEVEL_DEBUG
-#define DEBUG(...) \
+#define DEBUG(...)                                                             \
   logging_log(SLAM_LOG_LEVEL_DEBUG, __FILE__, __LINE__, __VA_ARGS__)
 #else
 #define DEBUG(...)
 #endif
 
 #if SLAM_LOG_LEVEL <= SLAM_LOG_LEVEL_INFO
-#define INFO(...) \
+#define INFO(...)                                                              \
   logging_log(SLAM_LOG_LEVEL_INFO, __FILE__, __LINE__, __VA_ARGS__)
 #else
 #define INFO(...)
 #endif
 
 #if SLAM_LOG_LEVEL <= SLAM_LOG_LEVEL_WARN
-#define WARN(...) \
+#define WARN(...)                                                              \
   logging_log(SLAM_LOG_LEVEL_WARN, __FILE__, __LINE__, __VA_ARGS__)
 #else
 #define WARN(...)
 #endif
 
 #if SLAM_LOG_LEVEL <= SLAM_LOG_LEVEL_ERROR
-#define ERROR(...) \
+#define ERROR(...)                                                             \
   logging_log(SLAM_LOG_LEVEL_ERROR, __FILE__, __LINE__, __VA_ARGS__)
 #else
 #define ERROR(...)
 #endif
 
 #if SLAM_LOG_LEVEL <= SLAM_LOG_LEVEL_FATAL
-#define FATAL(...) \
+#define FATAL(...)                                                             \
   logging_log(SLAM_LOG_LEVEL_FATAL, __FILE__, __LINE__, __VA_ARGS__)
 #else
 #define FATAL(...)

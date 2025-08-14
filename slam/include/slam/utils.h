@@ -20,7 +20,7 @@
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
-#define CLAMP(value, min, max) \
+#define CLAMP(value, min, max)                                                 \
   ((value) < (min) ? (min) : ((value) > (max) ? (max) : (value)))
 
 /**

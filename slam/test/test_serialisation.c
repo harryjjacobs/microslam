@@ -18,7 +18,8 @@ void treequal(const occupancy_quadtree_t *a, const occupancy_quadtree_t *b) {
   TEST_ASSERT_EQUAL(a->occupancy, b->occupancy);
   TEST_ASSERT_EQUAL(a->depth, b->depth);
   for (int i = 0; i < 4; i++) {
-    if (a->children[i] == NULL && b->children[i] == NULL) continue;
+    if (a->children[i] == NULL && b->children[i] == NULL)
+      continue;
     TEST_ASSERT_NOT_NULL(a->children[i]);
     TEST_ASSERT_NOT_NULL(b->children[i]);
     treequal(a->children[i], b->children[i]);
@@ -60,7 +61,7 @@ void test_write_read_header(void) {
 
 void test_serialise_deserialise_occupancy_quadtree(void) {
   occupancy_quadtree_t quadtree;
-  occupancy_quadtree_init(&quadtree, 0, 0, 16, 3);  // leaf size = 2
+  occupancy_quadtree_init(&quadtree, 0, 0, 16, 3); // leaf size = 2
   occupancy_quadtree_update(&quadtree, -7.5, -7.5, 0, 1);
   occupancy_quadtree_update(&quadtree, 7.5, 7.5, 0, 2);
   occupancy_quadtree_update(&quadtree, -7.5, 7.5, 0, 3);

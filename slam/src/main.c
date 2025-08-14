@@ -1,4 +1,4 @@
-#define _POSIX_C_SOURCE 199309L  // for clock_gettime
+#define _POSIX_C_SOURCE 199309L // for clock_gettime
 #include <math.h>
 #include <slam/course_to_fine_scan_matching.h>
 #include <slam/logging.h>
@@ -57,7 +57,8 @@ void generate_noisy_scan(lidar_sensor_t *lidar, scan_t *gt_scan, scan_t *scan,
     float dy = y - pose->y;
     float dist = sqrtf(dx * dx + dy * dy);
     float angle = atan2f(dy, dx) - pose->r;
-    if (angle < 0) angle += TWO_PI;
+    if (angle < 0)
+      angle += TWO_PI;
     size_t scan_idx = ((size_t)RAD2DEG(angle)) % 360;
 
     // add noise to the range
@@ -143,8 +144,8 @@ int main() {
     prev_time = current_time;
 
     // process input
-    uint16_t linear_speed = 300;  // mm/s
-    float angular_speed = 1.0f;   // rad/s
+    uint16_t linear_speed = 300; // mm/s
+    float angular_speed = 1.0f;  // rad/s
 
     motion_t gt_motion;
     gt_motion.dx = 0;
@@ -152,7 +153,7 @@ int main() {
     gt_motion.dr = 0;
     gt_motion.error_x = 0.1;  // mm
     gt_motion.error_y = 0.1;  // mm
-    gt_motion.error_r = 0.05;  // rad
+    gt_motion.error_r = 0.05; // rad
 
     motion_t motion;
     motion.dx = 0;
@@ -161,39 +162,39 @@ int main() {
 
     slam_viewer_key key = slam_viewer_getkey(&viewer);
     switch (key) {
-      case slam_viewer_key_up:
-        motion.dx = dt * linear_speed * cos(gt_state.pose.r);
-        motion.dy = dt * linear_speed * sin(gt_state.pose.r);
+    case slam_viewer_key_up:
+      motion.dx = dt * linear_speed * cos(gt_state.pose.r);
+      motion.dy = dt * linear_speed * sin(gt_state.pose.r);
 
-        gt_motion.dx = dt * linear_speed *
-                       (1 + random_normalf(0, gt_motion.error_x)) *
-                       cos(gt_state.pose.r);
-        gt_motion.dy = dt * linear_speed *
-                       (1 + random_normalf(0, gt_motion.error_y)) *
-                       sin(gt_state.pose.r);
-        break;
-      case slam_viewer_key_down:
-        motion.dx = dt * -linear_speed * cos(gt_state.pose.r);
-        motion.dy = dt * -linear_speed * sin(gt_state.pose.r);
-        gt_motion.dx = dt * linear_speed *
-                       (-1 + random_normalf(0, gt_motion.error_x)) *
-                       cos(gt_state.pose.r);
-        gt_motion.dy = dt * linear_speed *
-                       (-1 + random_normalf(0, gt_motion.error_y)) *
-                       sin(gt_state.pose.r);
-        break;
-      case slam_viewer_key_left:
-        motion.dr = dt * angular_speed;
-        gt_motion.dr =
-            dt * angular_speed * (1 + random_normalf(0, gt_motion.error_r));
-        break;
-      case slam_viewer_key_right:
-        motion.dr = dt * -angular_speed;
-        gt_motion.dr =
-            dt * -angular_speed * (1 + random_normalf(0, gt_motion.error_r));
-        break;
-      default:
-        break;
+      gt_motion.dx = dt * linear_speed *
+                     (1 + random_normalf(0, gt_motion.error_x)) *
+                     cos(gt_state.pose.r);
+      gt_motion.dy = dt * linear_speed *
+                     (1 + random_normalf(0, gt_motion.error_y)) *
+                     sin(gt_state.pose.r);
+      break;
+    case slam_viewer_key_down:
+      motion.dx = dt * -linear_speed * cos(gt_state.pose.r);
+      motion.dy = dt * -linear_speed * sin(gt_state.pose.r);
+      gt_motion.dx = dt * linear_speed *
+                     (-1 + random_normalf(0, gt_motion.error_x)) *
+                     cos(gt_state.pose.r);
+      gt_motion.dy = dt * linear_speed *
+                     (-1 + random_normalf(0, gt_motion.error_y)) *
+                     sin(gt_state.pose.r);
+      break;
+    case slam_viewer_key_left:
+      motion.dr = dt * angular_speed;
+      gt_motion.dr =
+          dt * angular_speed * (1 + random_normalf(0, gt_motion.error_r));
+      break;
+    case slam_viewer_key_right:
+      motion.dr = dt * -angular_speed;
+      gt_motion.dr =
+          dt * -angular_speed * (1 + random_normalf(0, gt_motion.error_r));
+      break;
+    default:
+      break;
     }
 
     if (key != slam_viewer_key_none) {
@@ -201,15 +202,14 @@ int main() {
       move(&gt_state, &gt_motion);
       move(&robot.state, &motion);
 
-
       if ((hypotf(robot.state.pose.x - prev_update_pose.x,
                   robot.state.pose.y - prev_update_pose.y) >=
            update_distance) ||
           (fabsf(robot.state.pose.r - prev_update_pose.r)) >= update_angle) {
         prev_update_pose = robot.state.pose;
-      robot.state.error.x += gt_motion.error_x * update_distance;
-      robot.state.error.y += gt_motion.error_y * update_distance;
-      robot.state.error.r += gt_motion.error_r * update_angle;
+        robot.state.error.x += gt_motion.error_x * update_distance;
+        robot.state.error.y += gt_motion.error_y * update_distance;
+        robot.state.error.r += gt_motion.error_r * update_angle;
 
         scan_reset(&scan);
         // the scan is generated from the ground truth scan

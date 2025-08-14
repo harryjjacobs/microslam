@@ -53,26 +53,26 @@ void slam_system_process(slam_system_t *system, pose_t *odometry,
                 system->pose.error.y * system->pose.error.y +
                 system->pose.error.r * system->pose.error.r);
     switch (localisation_result) {
-      case LOCALISATION_INITIALISING:
-        map_add_scan(&system->map, scan, &system->pose.pose,
-                     system->key_pose_id, certainty);
-        system->pose.error.x *= 1.1f;  // increase error estimate
-        system->pose.error.y *= 1.1f;
-        system->pose.error.r *= 1.1f;
-        break;
-      case LOCALISATION_SUCCESSFUL:
-        map_add_scan(&system->map, scan, &system->pose.pose,
-                     system->key_pose_id, certainty);
-        system->pose.error.x *= 0.5f;  // decrease error estimate
-        system->pose.error.y *= 0.5f;
-        system->pose.error.r *= 0.5f;
-        break;
-      case LOCALISATION_FAILED:
-        ERROR("Localisation failed, increasing error estimate");
-        system->pose.error.x *= 1.5f;  // increase error estimate
-        system->pose.error.y *= 1.5f;
-        system->pose.error.r *= 1.5f;
-        break;
+    case LOCALISATION_INITIALISING:
+      map_add_scan(&system->map, scan, &system->pose.pose, system->key_pose_id,
+                   certainty);
+      system->pose.error.x *= 1.1f; // increase error estimate
+      system->pose.error.y *= 1.1f;
+      system->pose.error.r *= 1.1f;
+      break;
+    case LOCALISATION_SUCCESSFUL:
+      map_add_scan(&system->map, scan, &system->pose.pose, system->key_pose_id,
+                   certainty);
+      system->pose.error.x *= 0.5f; // decrease error estimate
+      system->pose.error.y *= 0.5f;
+      system->pose.error.r *= 0.5f;
+      break;
+    case LOCALISATION_FAILED:
+      ERROR("Localisation failed, increasing error estimate");
+      system->pose.error.x *= 1.5f; // increase error estimate
+      system->pose.error.y *= 1.5f;
+      system->pose.error.r *= 1.5f;
+      break;
     }
   }
 }
@@ -93,7 +93,7 @@ static void robot_pose_init(robot_pose_t *pose) {
 
 static bool should_add_key_pose(slam_system_t *system, pose_t *pose) {
   if (system->key_poses == NULL) {
-    return true;  // no key poses yet
+    return true; // no key poses yet
   }
 
   float distance =

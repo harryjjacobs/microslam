@@ -35,8 +35,8 @@ static const char SLAM_SERIALISATION_ID_SCAN[SLAM_SERIALISATION_ID_LEN] = {'S', 
 
 typedef struct {
   char *data;
-  size_t length;    // bytes used
-  size_t capacity;  // bytes allocated
+  size_t length;   // bytes used
+  size_t capacity; // bytes allocated
 } serialisation_buffer_t;
 
 /**

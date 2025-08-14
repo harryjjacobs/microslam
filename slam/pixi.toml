@@ -18,3 +18,5 @@ ninja = "*"
 gcc = "*"
 glfw = ">=3"
 mesa-libgl-devel-cos7-x86_64 = "*"
+
+clang-format = ">=20.1.8,<21"

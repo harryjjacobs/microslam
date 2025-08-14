@@ -10,7 +10,7 @@
 #define TRANSLATION_EPSILON 1e-6f
 #define ROTATION_EPSILON 1e-6f
 
-static inline void vec2_reset(float* x, float* y) {
+static inline void vec2_reset(float *x, float *y) {
   *x = 0.0f;
   *y = 0.0f;
 }
@@ -19,28 +19,28 @@ static inline void mat2x2_reset(float m[4]) {
   m[0] = m[1] = m[2] = m[3] = 0.0f;
 }
 
-static inline bool mat2x2_inv(float* mat, float inv[4]) {
+static inline bool mat2x2_inv(float *mat, float inv[4]) {
   float det = mat[0] * mat[3] - mat[1] * mat[2];
   if (fabs(det) < 1e-15f) {
     ERROR("Matrix is singular, cannot invert");
     return false;
   }
-  inv[0] = mat[3] / det;   // inv[0][0]
-  inv[1] = -mat[1] / det;  // inv[0][1]
-  inv[2] = -mat[2] / det;  // inv[1][0]
-  inv[3] = mat[0] / det;   // inv[1][1]
+  inv[0] = mat[3] / det;  // inv[0][0]
+  inv[1] = -mat[1] / det; // inv[0][1]
+  inv[2] = -mat[2] / det; // inv[1][0]
+  inv[3] = mat[0] / det;  // inv[1][1]
   return true;
 }
 
-static inline void mat2x2_add_inplace(float* a, const float* b) {
+static inline void mat2x2_add_inplace(float *a, const float *b) {
   a[0] += b[0];
   a[1] += b[1];
   a[2] += b[2];
   a[3] += b[3];
 }
 
-static inline void scan_to_point(const scan_t* scan, size_t i, float* x,
-                                 float* y) {
+static inline void scan_to_point(const scan_t *scan, size_t i, float *x,
+                                 float *y) {
   float r = scan->range[i];
   float a = DEG2RAD(i);
   *x = r * cosf(a);
@@ -80,9 +80,9 @@ static inline void calc_noise_covariance(float cov[4], float angle, float range,
  * @param map the occupancy quadtree map
  * @param dist the distance to the nearest point in the map
  */
-static void calc_correspondence_covariance(float cov[4], const scan_t* scan,
+static void calc_correspondence_covariance(float cov[4], const scan_t *scan,
                                            uint16_t index,
-                                           const occupancy_quadtree_t* map) {
+                                           const occupancy_quadtree_t *map) {
   const float leaf_size = map->size >> map->max_depth;
   const float delta = leaf_size;
   const float variance = (delta * delta) / 3.0f;
@@ -114,10 +114,10 @@ static void calc_correspondence_covariance(float cov[4], const scan_t* scan,
   cov[3] = variance * dy * dy;
 }
 
-bool scan_matching_match(const scan_t* current_scan,
-                         const lidar_sensor_t* sensor,
-                         occupancy_quadtree_t* map, const pose_t* initial_guess,
-                         robot_pose_t* pose_estimate, uint16_t max_iterations) {
+bool scan_matching_match(const scan_t *current_scan,
+                         const lidar_sensor_t *sensor,
+                         occupancy_quadtree_t *map, const pose_t *initial_guess,
+                         robot_pose_t *pose_estimate, uint16_t max_iterations) {
   // From the papers: Weighted Range Sensor Matching Algorithms for Mobile
   // Robot Displacement Estimation (2002) and Robust Weighted Scan Matching
   // with Quadtrees (2009)
@@ -141,7 +141,8 @@ bool scan_matching_match(const scan_t* current_scan,
 
     for (size_t k = 0; k < 360; k++) {
       float range = current_scan->range[k];
-      if (range <= 1e-6f) continue;
+      if (range <= 1e-6f)
+        continue;
 
       float bx, by, rx, ry, tx, ty;
       scan_to_point(current_scan, k, &bx, &by);
@@ -153,9 +154,10 @@ bool scan_matching_match(const scan_t* current_scan,
       ty = ry + t_y;
 
       uint16_t dist;
-      occupancy_quadtree_t* node =
+      occupancy_quadtree_t *node =
           occupancy_quadtree_nearest(map, tx, ty, &dist);
-      if (!node || dist > max_match_dist) continue;
+      if (!node || dist > max_match_dist)
+        continue;
 
       float ax = node->x;
       float ay = node->y;
@@ -175,7 +177,8 @@ bool scan_matching_match(const scan_t* current_scan,
       cov[2] = corresp_cov[2] + tmp10 * c + tmp11 * s;
       cov[3] = corresp_cov[3] + tmp10 * -s + tmp11 * c;
 
-      if (!mat2x2_inv(cov, cov_inv)) continue;
+      if (!mat2x2_inv(cov, cov_inv))
+        continue;
       mat2x2_add_inplace(cov_inv_sum, cov_inv);
 
       float dx = ax - rx;
@@ -196,8 +199,10 @@ bool scan_matching_match(const scan_t* current_scan,
       delta_theta_den += Jq_P_Jq;
     }
 
-    if (!mat2x2_inv(cov_inv_sum, cov_inv_sum_inv)) return false;
-    if (fabsf(delta_theta_den) < 1e-6f) return false;
+    if (!mat2x2_inv(cov_inv_sum, cov_inv_sum_inv))
+      return false;
+    if (fabsf(delta_theta_den) < 1e-6f)
+      return false;
 
     float ntx = cov_inv_sum_inv[0] * cov_inv_r_sum_x +
                 cov_inv_sum_inv[1] * cov_inv_r_sum_y;
@@ -210,10 +215,9 @@ bool scan_matching_match(const scan_t* current_scan,
     float dr = delta_theta_num / delta_theta_den;
     phi = clamp_rotation(phi + dr);
 
-    DEBUG(
-        "Iter %d: t = (%.4f, %.4f), phi = %.4f, dtx = %.4f, dty = %.4f, dr = "
-        "%.4f",
-        iter, t_x, t_y, phi, dtx, dty, dr);
+    DEBUG("Iter %d: t = (%.4f, %.4f), phi = %.4f, dtx = %.4f, dty = %.4f, dr = "
+          "%.4f",
+          iter, t_x, t_y, phi, dtx, dty, dr);
 
     if (fabsf(dr) < ROTATION_EPSILON && fabsf(dtx) < TRANSLATION_EPSILON &&
         fabsf(dty) < TRANSLATION_EPSILON) {

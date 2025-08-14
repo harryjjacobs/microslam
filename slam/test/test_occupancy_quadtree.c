@@ -23,7 +23,7 @@ void test_occupancy_quadtree_update() {
   occupancy_quadtree_t quadtree;
   occupancy_quadtree_init(&quadtree, 0, 0, 1024, 1);
 
-  occupancy_quadtree_update(&quadtree, -200, -200, 0, 1);  // log odds = 1
+  occupancy_quadtree_update(&quadtree, -200, -200, 0, 1); // log odds = 1
   TEST_ASSERT_EQUAL_INT(OCCUPANCY_MIXED, quadtree.occupancy);
   TEST_ASSERT_TRUE(quadtree.children[0] != NULL);
   TEST_ASSERT_EQUAL_INT(OCCUPANCY_OCCUPIED, quadtree.children[0]->occupancy);
@@ -34,7 +34,7 @@ void test_occupancy_quadtree_update() {
   TEST_ASSERT_TRUE(quadtree.children[3] == NULL);
 
   // ensure that occupancy is updated and nodes are removed when log odds <= 0
-  occupancy_quadtree_update(&quadtree, -200, -200, 0, -1);  // log odds = -1
+  occupancy_quadtree_update(&quadtree, -200, -200, 0, -1); // log odds = -1
   TEST_ASSERT_EQUAL_INT(OCCUPANCY_FREE, quadtree.occupancy);
   TEST_ASSERT_TRUE(quadtree.children[0] == NULL);
   TEST_ASSERT_TRUE(quadtree.children[1] == NULL);
@@ -47,25 +47,25 @@ void test_occupancy_quadtree_update() {
 void test_occupancy_quadtree_update_multiple() {
   occupancy_quadtree_t quadtree;
   occupancy_quadtree_init(&quadtree, 0, 0, 1024, 1);
-  occupancy_quadtree_update(&quadtree, -200, -200, 0, 1);  // log odds = 1
+  occupancy_quadtree_update(&quadtree, -200, -200, 0, 1); // log odds = 1
   TEST_ASSERT_EQUAL_INT(OCCUPANCY_MIXED, quadtree.occupancy);
   TEST_ASSERT_TRUE(quadtree.children[0] != NULL);
   TEST_ASSERT_EQUAL_INT(OCCUPANCY_OCCUPIED, quadtree.children[0]->occupancy);
   TEST_ASSERT_EQUAL(1, quadtree.children[0]->log_odds);
 
-  occupancy_quadtree_update(&quadtree, 200, -200, 0, 2);  // log odds = 2
+  occupancy_quadtree_update(&quadtree, 200, -200, 0, 2); // log odds = 2
   TEST_ASSERT_EQUAL_INT(OCCUPANCY_MIXED, quadtree.occupancy);
   TEST_ASSERT_TRUE(quadtree.children[1] != NULL);
   TEST_ASSERT_EQUAL_INT(OCCUPANCY_OCCUPIED, quadtree.children[1]->occupancy);
   TEST_ASSERT_EQUAL(2, quadtree.children[1]->log_odds);
 
-  occupancy_quadtree_update(&quadtree, -200, 200, 0, 1);  // log odds = 1
+  occupancy_quadtree_update(&quadtree, -200, 200, 0, 1); // log odds = 1
   TEST_ASSERT_EQUAL_INT(OCCUPANCY_MIXED, quadtree.occupancy);
   TEST_ASSERT_TRUE(quadtree.children[2] != NULL);
   TEST_ASSERT_EQUAL_INT(OCCUPANCY_OCCUPIED, quadtree.children[2]->occupancy);
   TEST_ASSERT_EQUAL(1, quadtree.children[2]->log_odds);
 
-  occupancy_quadtree_update(&quadtree, 200, 200, 0, -1);  // log odds = -1
+  occupancy_quadtree_update(&quadtree, 200, 200, 0, -1); // log odds = -1
   TEST_ASSERT_EQUAL_INT(OCCUPANCY_MIXED, quadtree.occupancy);
   TEST_ASSERT_TRUE(quadtree.children[3] == NULL);
 
@@ -75,7 +75,7 @@ void test_occupancy_quadtree_update_multiple() {
 void test_occupancy_quadtree_update_depth_2() {
   occupancy_quadtree_t quadtree;
   occupancy_quadtree_init(&quadtree, 0, 0, 2048, 2);
-  occupancy_quadtree_update(&quadtree, -750, -750, 0, 1);  // log odds = 1
+  occupancy_quadtree_update(&quadtree, -750, -750, 0, 1); // log odds = 1
 
   TEST_ASSERT_EQUAL_INT(OCCUPANCY_MIXED, quadtree.occupancy);
   TEST_ASSERT_TRUE(quadtree.children[0] != NULL);
@@ -103,7 +103,7 @@ void test_occupancy_quadtree_update_depth_3() {
   occupancy_quadtree_t quadtree;
   occupancy_quadtree_init(&quadtree, 0, 0, 512, 3);
 
-  occupancy_quadtree_update(&quadtree, 255, 255, 0, 1);  // log odds = 1
+  occupancy_quadtree_update(&quadtree, 255, 255, 0, 1); // log odds = 1
   TEST_ASSERT_EQUAL_INT(OCCUPANCY_MIXED, quadtree.occupancy);
 
   // depth 1
@@ -274,7 +274,7 @@ void test_occupancy_quadtree_raycast() {
   occupancy_quadtree_t *node;
 
   node = occupancy_quadtree_raycast(&quadtree, 0, 0, 1, 1, 100, NULL);
-  TEST_ASSERT_TRUE(node == NULL);  // no intersection within max range
+  TEST_ASSERT_TRUE(node == NULL); // no intersection within max range
 
   uint16_t distance = UINT16_MAX;
   node = occupancy_quadtree_raycast(&quadtree, 0, 0, -1, -1, 32, &distance);

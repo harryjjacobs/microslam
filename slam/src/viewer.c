@@ -9,7 +9,7 @@
 #define WINDOW_WIDTH 800
 #define WINDOW_HEIGHT 800
 
-#define WORLD_SIZE 5000.0f  // size of the world in meters
+#define WORLD_SIZE 5000.0f // size of the world in meters
 
 static void key_callback(GLFWwindow *window, int key, int scancode, int action,
                          int mods) {
@@ -36,8 +36,8 @@ void slam_viewer_draw_robot(pose_t *pose, float r, float g, float b, float a) {
 void slam_viewer_draw_error(pose_t *pose, pose_t *error, float r, float g,
                             float b, float a) {
   // draw covariance 90% confidence region ellipse
-  float a_x = error->x * 2.4477f;  // 90% confidence interval for x
-  float a_y = error->y * 2.4477f;  // 90% confidence interval for y
+  float a_x = error->x * 2.4477f; // 90% confidence interval for x
+  float a_y = error->y * 2.4477f; // 90% confidence interval for y
   float angle = pose->r;
   glPushMatrix();
   glTranslatef(pose->x, pose->y, 0);

@@ -55,7 +55,7 @@ float map_entropy(occupancy_quadtree_t *occupancy) {
   size_t free = 1 << (2 * occupancy->max_depth);
   occupancy_quadtree_iterate_leafs_depth_first(occupancy, &occupied,
                                                entropy_count);
-  float epsilon = 1e-10;  // small value to prevent log(0)
+  float epsilon = 1e-10; // small value to prevent log(0)
   float P_occ = (float)occupied / (occupied + free) + epsilon;
   float P_free = (float)free / (occupied + free) + epsilon;
   return -(P_occ * log(P_occ) + P_free * log(P_free));

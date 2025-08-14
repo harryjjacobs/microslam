@@ -46,4 +46,4 @@ bool loop_closure_apply(loop_closure_t *lc, occupancy_quadtree_t *occ,
                         const slam_system_params_t *params,
                         const robot_pose_t *relative_pose);
 
-#endif  // SLAM_LOOP_CLOSURE_H_
+#endif // SLAM_LOOP_CLOSURE_H_

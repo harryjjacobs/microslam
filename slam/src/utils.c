@@ -4,8 +4,10 @@
 #include <stdio.h>
 
 float clamp_rotation(float value) {
-  while (value > PI) value -= TWO_PI;
-  while (value < -PI) value += TWO_PI;
+  while (value > PI)
+    value -= TWO_PI;
+  while (value < -PI)
+    value += TWO_PI;
   return value;
 }
 
@@ -60,7 +62,7 @@ float random_normalf(float mean, float stddev) {
  */
 int random_range_normal(int min, int max) {
   // Central Limit Theorem
-  unsigned int N = 32;  // number of averages to take
+  unsigned int N = 32; // number of averages to take
   int range = max - min;
   long long sum = 0;
   for (unsigned int i = 0; i < N; i++) {
@@ -75,7 +77,7 @@ int random_range_normal(int min, int max) {
  */
 float random_range_normalf(float min, float max) {
   // Central Limit Theorem
-  unsigned int N = 32;  // number of averages to take
+  unsigned int N = 32; // number of averages to take
   long long sum = 0;
   for (unsigned int i = 0; i < N; i++) {
     sum += rand();
@@ -153,7 +155,8 @@ uint8_t ray_intersects_aabb(int16_t aabb_min_x, int16_t aabb_min_y,
   float tmin = fmax(fmin(tx1, tx2), fmin(ty1, ty2));
   float tmax = fmin(fmax(tx1, tx2), fmax(ty1, ty2));
 
-  if (tmax < 0 || tmin > tmax) return 0;  // No intersection
+  if (tmax < 0 || tmin > tmax)
+    return 0; // No intersection
 
   // tmin will be negative if the ray starts inside the AABB
   *t_out = (tmin >= 0) ? tmin : tmax;
@@ -205,7 +208,7 @@ void solve_linear_system_3x3(float A[3][3], float b[3], float x[3]) {
 
 float huber_weight(float d, float delta) {
   if (fabsf(d) <= delta)
-    return 1.0f;  // full weight in quadratic region
+    return 1.0f; // full weight in quadratic region
   else
-    return delta / fabsf(d);  // down-weight large errors
+    return delta / fabsf(d); // down-weight large errors
 }
