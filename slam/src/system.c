@@ -3,10 +3,10 @@
 #include <math.h>
 #include <stdbool.h>
 
-#include "slam/course_to_fine_scan_matching.h"
-#include "slam/logging.h"
-#include "slam/scan.h"
-#include "slam/weighted_scan_matching.h"
+#include <slam/course_to_fine_scan_matching.h>
+#include <slam/logging.h>
+#include <slam/scan.h>
+#include <slam/weighted_scan_matching.h>
 
 typedef enum {
   LOCALISATION_INITIALISING = 0,
@@ -22,58 +22,96 @@ static void add_key_pose(slam_system_t *system, robot_pose_t *pose);
 static bool should_relocalise(slam_system_params_t *params,
                               robot_pose_t *current_pose,
                               robot_pose_t *estimated_pose);
-static slam_localisation_result_t localise(slam_system_t *system, scan_t *scan);
-static slam_localisation_result_t relocalise(slam_system_t *system,
-                                             scan_t *scan);
+static slam_localisation_result_t localise(slam_system_t *system, scan_t *scan,
+                                           robot_pose_t *estimate);
+static slam_localisation_result_t
+relocalise(slam_system_t *system, scan_t *scan, robot_pose_t *estimate);
+static void update_pose_from_ekf(slam_system_t *system);
+static int32_t calculate_certainty(robot_pose_t *pose_estimate,
+                                   robot_model_t *robot_model);
 
-void slam_system_init(slam_system_t *state) {
-  robot_pose_init(&state->pose);
-  map_init(&state->map);
+void slam_system_init(slam_system_t *system, slam_system_params_t *params,
+                      robot_model_t *robot_model) {
+  system->params = *params;
+  robot_pose_init(&system->pose);
+  map_init(&system->map);
 
-  state->key_pose_id = 0;
-  state->key_poses = NULL;
+  // float x0[3] = {0};
+  // float P0[3][3] = {0};
+  // for (int i = 0; i < 3; i++) {
+  //   P0[i][i] = 1.0f; // initial covariance
+  // }
+  // ekf_init(&system->ekf, x0, P0, params->odometry_error_x,
+  //          params->odometry_error_y, 0.5f, 0.5f, params->odometry_error_r,
+  //          0.1f);
 
-  INFO("SLAM system initialized with map size %.2f and depth %d", MAP_SIZE,
+  system->key_pose_id = 0;
+  system->key_poses = NULL;
+
+  system->robot_model = *robot_model;
+
+  INFO("SLAM system initialized with map size %d and depth %d", MAP_SIZE,
        MAP_DEPTH);
 }
 
-void slam_system_process(slam_system_t *system, pose_t *odometry,
-                         scan_t *scan) {
-  system->pose.pose.x += odometry->x;
-  system->pose.pose.y += odometry->y;
-  system->pose.pose.r += odometry->r;
+void slam_system_process(slam_system_t *system, odometry_t *odometry,
+                         scan_t *scan, float dt) {
+
+  // input odometry to the EKF
+  float u[3] = {odometry->dx, odometry->dy, odometry->dr};
+  float Qu[3][3] = {
+      {system->params.odometry_error_x * odometry->dx, 0, 0},
+      {0, system->params.odometry_error_y * odometry->dy, 0},
+      {0, 0, system->params.odometry_error_r * odometry->dr},
+  };
+  // ekf_predict(&system->ekf, dt, u, Qu);
 
   if (should_add_key_pose(system, &system->pose.pose)) {
-    add_key_pose(system, &system->pose);
-
-    slam_localisation_result_t localisation_result = localise(system, scan);
-
-    const float certainty =
-        1.0f / (system->pose.error.x * system->pose.error.x +
-                system->pose.error.y * system->pose.error.y +
-                system->pose.error.r * system->pose.error.r);
+    robot_pose_t pose_estimate;
+    slam_localisation_result_t localisation_result =
+        localise(system, scan, &pose_estimate);
+    const int32_t certainty =
+        calculate_certainty(&pose_estimate, &system->robot_model);
     switch (localisation_result) {
     case LOCALISATION_INITIALISING:
-      map_add_scan(&system->map, scan, &system->pose.pose, system->key_pose_id,
-                   certainty);
-      system->pose.error.x *= 1.1f; // increase error estimate
-      system->pose.error.y *= 1.1f;
-      system->pose.error.r *= 1.1f;
+      DEBUG("Localisation initialising, adding scan to map with certainty %d\n",
+            certainty);
       break;
     case LOCALISATION_SUCCESSFUL:
-      map_add_scan(&system->map, scan, &system->pose.pose, system->key_pose_id,
-                   certainty);
-      system->pose.error.x *= 0.5f; // decrease error estimate
-      system->pose.error.y *= 0.5f;
-      system->pose.error.r *= 0.5f;
+      DEBUG("Localisation successful, pose estimate: (%d, %d, %.6f), "
+            "error: (%d, %d, %.6f), certainty: %d",
+            pose_estimate.pose.x, pose_estimate.pose.y,
+            RAD2DEG(pose_estimate.pose.r), pose_estimate.error.x,
+            pose_estimate.error.y, RAD2DEG(pose_estimate.error.r), certainty);
+      float z[3] = {0};
+      z[0] = pose_estimate.pose.x;
+      z[1] = pose_estimate.pose.y;
+      z[2] = pose_estimate.pose.r;
+
+      float R[3][3] = {0};
+      R[0][0] = pose_estimate.error.x * pose_estimate.error.x;
+      R[1][1] = pose_estimate.error.y * pose_estimate.error.y;
+      R[2][2] = pose_estimate.error.r * pose_estimate.error.r;
+
+      // ekf_update(&system->ekf, z, R);
+
       break;
     case LOCALISATION_FAILED:
       ERROR("Localisation failed, increasing error estimate");
       system->pose.error.x *= 1.5f; // increase error estimate
       system->pose.error.y *= 1.5f;
       system->pose.error.r *= 1.5f;
-      break;
+      return;
     }
+
+    update_pose_from_ekf(system);
+
+    add_key_pose(system, &system->pose);
+
+    map_add_scan(&system->map, scan, &system->pose.pose, system->key_pose_id,
+                 certainty);
+  } else {
+    update_pose_from_ekf(system);
   }
 }
 
@@ -130,28 +168,29 @@ static void add_key_pose(slam_system_t *system, robot_pose_t *pose) {
   // add the new key pose
   system->key_poses[system->key_pose_id] = *pose;
   system->key_pose_id++;
-  INFO("Added key pose %zu at (%d, %d, %.6f)", system->key_pose_id - 1,
-       pose->pose.x, pose->pose.y, pose->pose.r);
+  INFO("Added key pose %zu at (%d, %d, %.6f) with error (%d, %d, %.6f)",
+       system->key_pose_id - 1, pose->pose.x, pose->pose.y, pose->pose.r,
+       pose->error.x, pose->error.y, pose->error.r);
 }
 
-static slam_localisation_result_t localise(slam_system_t *system,
-                                           scan_t *scan) {
+static slam_localisation_result_t localise(slam_system_t *system, scan_t *scan,
+                                           robot_pose_t *estimate) {
   // if not enough data to localise yet, just add the scan to the map
   float entropy = map_entropy(&system->map);
-  if (entropy < 0.0005f * MAP_LEAF_SIZE) {
+  printf("Map entropy: %.6f\n", entropy);
+  if (entropy < 0.0002f * MAP_LEAF_SIZE) {
     return LOCALISATION_INITIALISING;
   }
 
-  robot_pose_t pose_estimate;
   if (scan_matching_match(scan, &system->robot_model.lidar, &system->map,
-                          &system->pose.pose, &pose_estimate,
+                          &system->pose.pose, estimate,
                           system->params.scan_matching_iterations) &&
-      !should_relocalise(&system->params, &system->pose, &pose_estimate)) {
-    system->pose = pose_estimate;
+      !should_relocalise(&system->params, &system->pose, estimate)) {
+
     return LOCALISATION_SUCCESSFUL;
   } else {
     INFO("Standard scan matching failed, trying relocalisation");
-    return relocalise(system, scan);
+    return relocalise(system, scan, estimate);
   }
 
   return LOCALISATION_FAILED;
@@ -167,13 +206,45 @@ static bool should_relocalise(slam_system_params_t *params,
           dist_r > params->relocalise_distance_r);
 }
 
-static slam_localisation_result_t relocalise(slam_system_t *system,
-                                             scan_t *scan) {
-  robot_pose_t pose_estimate;
+static slam_localisation_result_t
+relocalise(slam_system_t *system, scan_t *scan, robot_pose_t *estimate) {
   if (course_to_fine_scan_matching_match(scan, &system->map, UINT16_MAX,
-                                         &system->pose, &pose_estimate)) {
-    system->pose = pose_estimate;
+                                         &system->pose, estimate)) {
     return LOCALISATION_SUCCESSFUL;
   }
   return LOCALISATION_FAILED;
+}
+
+static void update_pose_from_ekf(slam_system_t *system) {
+  float out_x[3];
+  float out_P[3][3];
+  ekf_get_state(&system->ekf, out_x, out_P);
+
+  system->pose.pose.x = (int16_t)out_x[0];
+  system->pose.pose.y = (int16_t)out_x[1];
+  system->pose.pose.r = out_x[2];
+
+  system->pose.error.x = (int16_t)(out_P[0][0] + out_P[1][1]);
+  system->pose.error.y = (int16_t)(out_P[0][0] + out_P[1][1]);
+  system->pose.error.r = out_P[2][2];
+
+  DEBUG("EKF updated robot pose: (%d, %d, %.6f), error: (%d, %d, %.6f)",
+        system->pose.pose.x, system->pose.pose.y, RAD2DEG(system->pose.pose.r),
+        system->pose.error.x, system->pose.error.y,
+        RAD2DEG(system->pose.error.r));
+}
+
+static int32_t calculate_certainty(robot_pose_t *pose_estimate,
+                                   robot_model_t *robot_model) {
+  if (pose_estimate->error.x == 0 && pose_estimate->error.y == 0 &&
+      pose_estimate->error.r < 1e-5f) {
+    return INT32_MAX; // very high certainty
+  }
+
+  int32_t error = pose_estimate->error.x * pose_estimate->error.x +
+                  pose_estimate->error.y * pose_estimate->error.y +
+                  robot_model->lidar.range_error * cosf(pose_estimate->pose.r) +
+                  robot_model->lidar.range_error * sinf(pose_estimate->pose.r);
+
+  return MAX(1, MAP_LEAF_SIZE / (error + 1)); // inverse of error, capped at 1
 }

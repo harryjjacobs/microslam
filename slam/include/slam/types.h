@@ -40,13 +40,4 @@ typedef struct robot_model_t {
   lidar_sensor_t lidar;
 } robot_model_t;
 
-typedef struct motion_t {
-  uint16_t dx;
-  uint16_t dy;
-  float dr;
-  float error_x; // mm
-  float error_y; // mm
-  float error_r; // rad
-} motion_t;
-
 #endif

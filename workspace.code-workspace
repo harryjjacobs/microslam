@@ -16,7 +16,14 @@
             "path": "./",
         }
     ],
-    "settings": {},
+    "settings": {
+        "files.associations": {
+            "viewer.h": "c",
+            "compare": "c",
+            "cstdint": "c",
+            "mat.h": "c"
+        }
+    },
     "extensions": {
         "recommendations": [
             "espressif.esp-idf-extension",

@@ -215,9 +215,10 @@ bool scan_matching_match(const scan_t *current_scan,
     float dr = delta_theta_num / delta_theta_den;
     phi = wrap_angle(phi + dr);
 
-    DEBUG("Iter %d: t = (%.4f, %.4f), phi = %.4f, dtx = %.4f, dty = %.4f, dr = "
-          "%.4f",
-          iter, t_x, t_y, phi, dtx, dty, dr);
+    // DEBUG("Iter %d: t = (%.4f, %.4f), phi = %.4f, dtx = %.4f, dty = %.4f, dr
+    // = "
+    //       "%.4f",
+    //       iter, t_x, t_y, phi, dtx, dty, dr);
 
     if (fabsf(dr) < ROTATION_EPSILON && fabsf(dtx) < TRANSLATION_EPSILON &&
         fabsf(dty) < TRANSLATION_EPSILON) {

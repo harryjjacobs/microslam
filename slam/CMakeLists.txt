@@ -35,6 +35,7 @@ add_library(slam STATIC
     src/loop_closure.c
     src/map.c
     src/mat.c
+    src/odometry.c
     src/occupancy_quadtree.c
     src/scan.c
     src/serialisation.c

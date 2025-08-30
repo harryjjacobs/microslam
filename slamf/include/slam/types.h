@@ -32,7 +32,7 @@ typedef struct lidar_sensor_t {
 
 typedef struct scan_t {
   float range[360];
-  unsigned short hits;  // the number of valid (non-zero) hits in the scan
+  unsigned short hits; // the number of valid (non-zero) hits in the scan
 } scan_t;
 
 typedef struct robot_t {
@@ -53,7 +53,7 @@ typedef struct occupancy_quadtree_t {
   float x;
   float y;
   float size;
-  float log_odds;  // log odds of the occupancy
+  float log_odds; // log odds of the occupancy
   enum { OCCUPANCY_FREE, OCCUPANCY_MIXED, OCCUPANCY_OCCUPIED } occupancy;
   struct occupancy_quadtree_t *children[4];
 } occupancy_quadtree_t;

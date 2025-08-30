@@ -1,12 +1,10 @@
 #define _POSIX_C_SOURCE 199309L // for clock_gettime
 #include <math.h>
-#include <slam/course_to_fine_scan_matching.h>
 #include <slam/logging.h>
-#include <slam/map.h>
+#include <slam/odometry.h>
 #include <slam/scan.h>
-#include <slam/utils.h>
+#include <slam/system.h>
 #include <slam/viewer.h>
-#include <slam/weighted_scan_matching.h>
 #include <time.h>
 
 /**
@@ -70,70 +68,109 @@ void generate_noisy_scan(lidar_sensor_t *lidar, scan_t *gt_scan, scan_t *scan,
   }
 }
 
-void move(robot_pose_t *state, motion_t *motion) {
-  state->pose.x += motion->dx;
-  state->pose.y += motion->dy;
-  state->pose.r = rotate(state->pose.r, motion->dr);
+void move(robot_pose_t *state, odometry_t *odometry) {
+  state->pose.x += odometry->dx;
+  state->pose.y += odometry->dy;
+  state->pose.r = rotate(state->pose.r, odometry->dr);
 }
 
-bool check_relocalise(robot_pose_t *current_state,
-                      robot_pose_t *estimated_state, float relocalise_dist_t,
-                      float relocalise_dist_r) {
-  float dist_t = hypotf(current_state->pose.x - estimated_state->pose.x,
-                        current_state->pose.y - estimated_state->pose.y);
-  float dist_r = fabsf(current_state->pose.r - estimated_state->pose.r);
-  return (dist_t > relocalise_dist_t || dist_r > relocalise_dist_r);
+static void get_odometry_from_key(slam_viewer_key key, double dt,
+                                  robot_pose_t *gt_state,
+                                  odometry_t *gt_odometry,
+                                  odometry_t *odometry) {
+  // process input
+  static uint16_t linear_speed = 300; // mm/s
+  static float angular_speed = 1.0f;  // rad/s
+
+  switch (key) {
+  case slam_viewer_key_up:
+    odometry->dx += dt * linear_speed * cos(gt_state->pose.r);
+    odometry->dy += dt * linear_speed * sin(gt_state->pose.r);
+
+    gt_odometry->dx += dt * linear_speed *
+                       (1 + random_normalf(0, gt_odometry->covariance[0][0])) *
+                       cos(gt_state->pose.r);
+    gt_odometry->dy = dt * linear_speed *
+                      (1 + random_normalf(0, gt_odometry->covariance[1][1])) *
+                      sin(gt_state->pose.r);
+    break;
+  case slam_viewer_key_down:
+    odometry->dx += dt * -linear_speed * cos(gt_state->pose.r);
+    odometry->dy += dt * -linear_speed * sin(gt_state->pose.r);
+    gt_odometry->dx += dt * linear_speed *
+                       (-1 + random_normalf(0, gt_odometry->covariance[0][0])) *
+                       cos(gt_state->pose.r);
+    gt_odometry->dy += dt * linear_speed *
+                       (-1 + random_normalf(0, gt_odometry->covariance[1][1])) *
+                       sin(gt_state->pose.r);
+    break;
+  case slam_viewer_key_left:
+    odometry->dr += dt * angular_speed;
+    gt_odometry->dr += dt * angular_speed *
+                       (1 + random_normalf(0, gt_odometry->covariance[2][2]));
+    break;
+  case slam_viewer_key_right:
+    odometry->dr += dt * -angular_speed;
+    gt_odometry->dr += dt * -angular_speed *
+                       (1 + random_normalf(0, gt_odometry->covariance[2][2]));
+    break;
+  default:
+    break;
+  }
 }
 
 int main() {
   // the distance from the previous update at which the scan matching will
   // update the pose
-  const uint16_t update_distance = 50;
+  const uint16_t update_distance = 25;
   const float update_angle = 0.1f;
-
-  // the maximum distance from the current pose estimate at which the scan
-  // matching pose estimate will be considered valid
-  const float relocalise_dist_t = 100.0f;
-  const float relocalise_dist_r = 0.2f;
 
   slam_viewer_t viewer;
   slam_viewer_init(&viewer);
-
-  const uint16_t map_size = 4096;
-  const uint16_t map_depth = 8;
-  const uint16_t map_leaf_size = map_size >> map_depth;
-
-  occupancy_quadtree_t occ;
-  occupancy_quadtree_init(&occ, 0, 0, map_size, map_depth);
 
   scan_t gt_scan, scan;
   scan_reset(&gt_scan);
   scan_reset(&scan);
   generate_gt_scan(&gt_scan);
 
-  robot_model_t robot;
-  robot.lidar.max_range = 1000;
-  robot.lidar.range_error = 5;
-  robot.lidar.bearing_error = 0.001;
-
-  robot_pose_t state;
-  state.pose.x = 75;
-  state.pose.y = 0;
-  state.pose.r = 0;
-  state.error.x = 0;
-  state.error.y = 0;
-  state.error.r = 0;
+  robot_model_t robot_model;
+  robot_model.lidar.max_range = 1000;
+  robot_model.lidar.range_error = 2;
+  robot_model.lidar.bearing_error = 0.001;
 
   robot_pose_t gt_state;
-  gt_state.pose.x = 75;
+  gt_state.pose.x = 0;
   gt_state.pose.y = 0;
   gt_state.pose.r = 0;
 
-  pose_t prev_update_pose = state.pose;
+  pose_t prev_update_pose = gt_state.pose;
+
+  slam_system_params_t params = {
+      .key_pose_distance = 100,
+      .key_pose_angle = 0.1f,
+      .scan_matching_iterations = 100,
+      .relocalise_distance_t = 100,
+      .relocalise_distance_r = 0.2f,
+      .odometry_error_x = 0.1f,  // mm
+      .odometry_error_y = 0.1f,  // mm
+      .odometry_error_r = 0.05f, // rad
+  };
+
+  slam_system_t system;
+  slam_system_init(&system, &params, &robot_model);
 
   double dt;
   struct timespec prev_time, current_time;
   clock_gettime(CLOCK_MONOTONIC, &prev_time);
+
+  odometry_t gt_odometry;
+  slam_odometry_reset_pose(&gt_odometry);
+  slam_odometry_covariance_diagonal(&gt_odometry, params.odometry_error_x,
+                                    params.odometry_error_y,
+                                    params.odometry_error_r);
+
+  odometry_t odometry;
+  slam_odometry_reset_pose(&odometry);
 
   while (!glfwWindowShouldClose(viewer.window)) {
     slam_viewer_begin_draw();
@@ -144,127 +181,39 @@ int main() {
          (current_time.tv_nsec - prev_time.tv_nsec) / 1e9;
     prev_time = current_time;
 
-    // process input
-    uint16_t linear_speed = 300; // mm/s
-    float angular_speed = 1.0f;  // rad/s
-
-    motion_t gt_motion;
-    gt_motion.dx = 0;
-    gt_motion.dy = 0;
-    gt_motion.dr = 0;
-    gt_motion.error_x = 0.1;  // mm
-    gt_motion.error_y = 0.1;  // mm
-    gt_motion.error_r = 0.05; // rad
-
-    motion_t motion;
-    motion.dx = 0;
-    motion.dy = 0;
-    motion.dr = 0;
+    slam_odometry_reset_pose(&gt_odometry);
 
     slam_viewer_key key = slam_viewer_getkey(&viewer);
-    switch (key) {
-    case slam_viewer_key_up:
-      motion.dx = dt * linear_speed * cos(gt_state.pose.r);
-      motion.dy = dt * linear_speed * sin(gt_state.pose.r);
-
-      gt_motion.dx = dt * linear_speed *
-                     (1 + random_normalf(0, gt_motion.error_x)) *
-                     cos(gt_state.pose.r);
-      gt_motion.dy = dt * linear_speed *
-                     (1 + random_normalf(0, gt_motion.error_y)) *
-                     sin(gt_state.pose.r);
-      break;
-    case slam_viewer_key_down:
-      motion.dx = dt * -linear_speed * cos(gt_state.pose.r);
-      motion.dy = dt * -linear_speed * sin(gt_state.pose.r);
-      gt_motion.dx = dt * linear_speed *
-                     (-1 + random_normalf(0, gt_motion.error_x)) *
-                     cos(gt_state.pose.r);
-      gt_motion.dy = dt * linear_speed *
-                     (-1 + random_normalf(0, gt_motion.error_y)) *
-                     sin(gt_state.pose.r);
-      break;
-    case slam_viewer_key_left:
-      motion.dr = dt * angular_speed;
-      gt_motion.dr =
-          dt * angular_speed * (1 + random_normalf(0, gt_motion.error_r));
-      break;
-    case slam_viewer_key_right:
-      motion.dr = dt * -angular_speed;
-      gt_motion.dr =
-          dt * -angular_speed * (1 + random_normalf(0, gt_motion.error_r));
-      break;
-    default:
-      break;
-    }
+    get_odometry_from_key(key, dt, &gt_state, &gt_odometry, &odometry);
 
     if (key != slam_viewer_key_none) {
       // move
-      move(&gt_state, &gt_motion);
-      move(&state, &motion);
-
-      if ((hypotf(state.pose.x - prev_update_pose.x,
-                  state.pose.y - prev_update_pose.y) >= update_distance) ||
-          (fabsf(state.pose.r - prev_update_pose.r)) >= update_angle) {
-        prev_update_pose = state.pose;
-        state.error.x += gt_motion.error_x * update_distance;
-        state.error.y += gt_motion.error_y * update_distance;
-        state.error.r += gt_motion.error_r * update_angle;
+      move(&gt_state, &gt_odometry);
+      INFO("Ground truth state: (%d, %d, %.9f)", gt_state.pose.x,
+           gt_state.pose.y, RAD2DEG(gt_state.pose.r));
+      if ((hypotf(gt_state.pose.x - prev_update_pose.x,
+                  gt_state.pose.y - prev_update_pose.y) >= update_distance) ||
+          (fabsf(gt_state.pose.r - prev_update_pose.r)) >= update_angle) {
+        prev_update_pose = gt_state.pose;
 
         scan_reset(&scan);
         // the scan is generated from the ground truth scan
         // and moved to the ground truth robot pose
-        generate_noisy_scan(&robot.lidar, &gt_scan, &scan, &gt_state.pose);
+        generate_noisy_scan(&robot_model.lidar, &gt_scan, &scan,
+                            &gt_state.pose);
 
-        double entropy = map_entropy(&occ);
-        INFO("occupancy map entropy: %f", entropy);
+        // update the slam system
+        slam_system_process(&system, &odometry, &scan, dt);
 
-        if (entropy < map_leaf_size * 0.0001f) {
-          INFO("map is empty, skipping scan matching");
-          // update the occupancy grid
-          map_add_scan(&occ, &scan, &state.pose, 0, 1.0);
-        } else if (scan.hits > 5) {
-          robot_pose_t pose_estimate;
-          if (scan_matching_match(&scan, &robot.lidar, &occ, &state.pose,
-                                  &pose_estimate, 100) &&
-              !check_relocalise(&state, &pose_estimate, relocalise_dist_t,
-                                relocalise_dist_r)) {
-            INFO("scan match pose estimate: %d %d %f", pose_estimate.pose.x,
-                 pose_estimate.pose.y, pose_estimate.pose.r);
-
-            // update the robot pose
-            state = pose_estimate;
-            // update the occupancy grid
-            map_add_scan(&occ, &scan, &state.pose, 0, 1.0);
-          } else {
-            INFO("scan match failed, relocalising");
-            if (course_to_fine_scan_matching_match(&scan, &occ, UINT16_MAX,
-                                                   &state, &pose_estimate)) {
-              INFO("course to fine scan match pose estimate: %d %d %f",
-                   pose_estimate.pose.x, pose_estimate.pose.y,
-                   pose_estimate.pose.r);
-              // update the robot pose
-              state = pose_estimate;
-            }
-          }
-        }
-        INFO("ground truth pose: %d %d %f", gt_state.pose.x, gt_state.pose.y,
-             gt_state.pose.r);
-        INFO("robot pose: %d %d %f", state.pose.x, state.pose.y, state.pose.r);
-        INFO("difference: %d %d %f", state.pose.x - gt_state.pose.x,
-             state.pose.y - gt_state.pose.y, state.pose.r - gt_state.pose.r);
-
-        slam_viewer_draw_scan(&scan, &gt_state.pose, 0, 0, 1);
+        slam_odometry_reset_pose(&odometry);
       }
     }
 
     // draw
-    slam_viewer_draw_occupancy(&occ);
+    slam_viewer_draw_occupancy(&system.map);
     slam_viewer_draw_robot(&gt_state.pose, 0, 0, 1, 0.5);
-    slam_viewer_draw_robot(&state.pose, 0, 1, 0, 1);
-    slam_viewer_draw_error(&state.pose, &state.error, 0, 0, 1, 0.5);
-    // INFO("error: %d %d %f", state.error.x, state.error.y,
-    //      state.error.r);
+    slam_viewer_draw_robot(&system.pose.pose, 1, 0, 0, 0.5);
+    slam_viewer_draw_error(&system.pose.pose, &system.pose.error, 0, 0, 1, 0.5);
     slam_viewer_end_draw(&viewer);
 
     // sleep
@@ -274,6 +223,5 @@ int main() {
         (1.0 / 60.0) * 1e9 - (current_time.tv_nsec - prev_time.tv_nsec);
     nanosleep(&ts, NULL);
   }
-
   return 0;
 }

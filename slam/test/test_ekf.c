@@ -10,13 +10,13 @@
 ekf_t kf;
 
 void setUp(void) {
-  // initial state: px=0, py=0, theta=0, vx=1, vy=0.5, omega=0.1
-  float x0[SLAM_EKF_STATE_N] = {0, 0, 0, 1.0, 0.5, 0.1};
-  float P0[SLAM_EKF_STATE_N][SLAM_EKF_STATE_N] = {0};
-  for (int i = 0; i < SLAM_EKF_STATE_N; i++)
-    P0[i][i] = 1e-3;
+  // initial state: px=0, py=0, theta=0
+  float x0[3] = {0, 0, 0};
+  float P0[9] = {0};
+  for (int i = 0; i < 3; i++)
+    P0[i * 3 + i] = 1e-3;
 
-  ekf_init(&kf, x0, P0, 1e-3, 1e-3, 1e-4, 1e-5);
+  ekf_init(&kf, x0, P0);
 }
 
 void tearDown(void) {
@@ -24,8 +24,8 @@ void tearDown(void) {
 }
 
 void test_initialization(void) {
-  float x[SLAM_EKF_STATE_N];
-  float P[SLAM_EKF_STATE_N][SLAM_EKF_STATE_N];
+  float x[3];
+  float P[9];
   ekf_get_state(&kf, x, P);
 
   TEST_ASSERT_FLOAT_WITHIN(TOL, 0.0, x[0]);
@@ -35,27 +35,29 @@ void test_initialization(void) {
   TEST_ASSERT_FLOAT_WITHIN(TOL, 0.5, x[4]);
   TEST_ASSERT_FLOAT_WITHIN(TOL, 0.1, x[5]);
 
-  for (int i = 0; i < SLAM_EKF_STATE_N; i++) {
-    for (int j = 0; j < SLAM_EKF_STATE_N; j++) {
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
       if (i == j) {
-        TEST_ASSERT_FLOAT_WITHIN(TOL, 1e-3, P[i][j]);
+        TEST_ASSERT_FLOAT_WITHIN(TOL, 1e-3, P[i * 3 + j]);
       } else {
-        TEST_ASSERT_FLOAT_WITHIN(TOL, 0.0, P[i][j]);
+        TEST_ASSERT_FLOAT_WITHIN(TOL, 0.0, P[i * 3 + j]);
       }
     }
   }
 }
 
 void test_prediction(void) {
-  float dt = 0.1;
-  ekf_predict(&kf, dt);
+  float u[3] = {0.0, 0.0, 0.0}; // control input: vx, vy, omega
+  float Qu[3][3] = {0};         // control noise covariance
+  ekf_set_process_noise(&kf, (float *)Qu);
+  ekf_predict(&kf, u);
 
-  float x[SLAM_EKF_STATE_N];
-  ekf_get_state(&kf, x, (float (*)[SLAM_EKF_STATE_N])NULL);
+  float x[3];
+  ekf_get_state(&kf, x, (float (*)[3])NULL);
 
-  TEST_ASSERT_FLOAT_WITHIN(TOL, 0.0 + 1.0 * dt, x[0]);
-  TEST_ASSERT_FLOAT_WITHIN(TOL, 0.0 + 0.5 * dt, x[1]);
-  TEST_ASSERT_FLOAT_WITHIN(TOL, 0.0 + 0.1 * dt, x[2]);
+  TEST_ASSERT_FLOAT_WITHIN(TOL, 0.0 + 1.0, x[0]);
+  TEST_ASSERT_FLOAT_WITHIN(TOL, 0.0 + 0.5, x[1]);
+  TEST_ASSERT_FLOAT_WITHIN(TOL, 0.0 + 0.1, x[2]);
   TEST_ASSERT_FLOAT_WITHIN(TOL, 1.0, x[3]);
   TEST_ASSERT_FLOAT_WITHIN(TOL, 0.5, x[4]);
   TEST_ASSERT_FLOAT_WITHIN(TOL, 0.1, x[5]);
@@ -63,7 +65,9 @@ void test_prediction(void) {
 
 void test_update_simple_measurement(void) {
   float dt = 0.1;
-  ekf_predict(&kf, dt);
+  float u[3] = {0.0, 0.0, 0.0}; // control input: vx, vy, omega
+  float Qu[3][3] = {0};         // control noise covariance
+  ekf_predict(&kf, dt, u, Qu);
 
   // measurement close to predicted (+0.01, +0.001, +0.001)
   float z[SLAM_EKF_MEAS_N] = {0.11, 0.051, 0.011};
@@ -75,8 +79,8 @@ void test_update_simple_measurement(void) {
   int status = ekf_update(&kf, z, R);
   TEST_ASSERT_EQUAL_INT(0, status);
 
-  float x[SLAM_EKF_STATE_N];
-  ekf_get_state(&kf, x, (float (*)[SLAM_EKF_STATE_N])NULL);
+  float x[3];
+  ekf_get_state(&kf, x, (float (*)[3])NULL);
 
   // The state should be closer to the measurement than the prior
   TEST_ASSERT_LESS_THAN_FLOAT(fabs(0.0 + 1.0 * dt - z[0]), fabs(x[0] - z[0]));
@@ -87,8 +91,10 @@ void test_update_simple_measurement(void) {
 
 void test_predict_update_loop(void) {
   float dt = 0.1;
+  float u[3] = {0.0, 0.0, 0.0}; // control input: vx, vy, omega
+  float Qu[3][3] = {0};         // control noise covariance
   for (int i = 0; i < 10; i++) {
-    ekf_predict(&kf, dt);
+    ekf_predict(&kf, dt, u, Qu);
 
     // simulate a measurement that is close to the predicted state
     float z[SLAM_EKF_MEAS_N];
@@ -104,8 +110,8 @@ void test_predict_update_loop(void) {
     int status = ekf_update(&kf, z, R);
     TEST_ASSERT_EQUAL_INT(0, status);
 
-    float x[SLAM_EKF_STATE_N];
-    ekf_get_state(&kf, x, (float (*)[SLAM_EKF_STATE_N])NULL);
+    float x[3];
+    ekf_get_state(&kf, x, (float (*)[3])NULL);
 
     // Check that the state is updated towards the measurement
     TEST_ASSERT_LESS_OR_EQUAL_FLOAT(fabs(kf.x[0] - z[0]), fabs(x[0] - z[0]));
@@ -117,7 +123,9 @@ void test_predict_update_loop(void) {
 
 void test_covariance_positive(void) {
   float dt = 0.1;
-  ekf_predict(&kf, dt);
+  float u[3] = {0.0, 0.0, 0.0}; // control input: vx, vy, omega
+  float Qu[3][3] = {0};
+  ekf_predict(&kf, dt, u, Qu);
 
   float z[SLAM_EKF_MEAS_N] = {0.2, 0.1, 0.05};
   float R[SLAM_EKF_MEAS_N][SLAM_EKF_MEAS_N] = {0};
@@ -127,7 +135,7 @@ void test_covariance_positive(void) {
   ekf_update(&kf, z, R);
 
   // basic check: diagonal elements > 0
-  for (int i = 0; i < SLAM_EKF_STATE_N; i++) {
+  for (int i = 0; i < 3; i++) {
     TEST_ASSERT_TRUE(kf.P[i][i] > 0.0);
   }
 }

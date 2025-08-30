@@ -23,6 +23,7 @@ bool course_to_fine_scan_matching_match(const scan_t *scan,
   const int steps = 5; // odd, always symmetric
 
   pose_t best_pose = initial_guess->pose;
+  pose_t best_error = initial_guess->error;
 
   // how many times we can half the maximum resolution before we reach the
   // minimum resolution
@@ -53,6 +54,9 @@ bool course_to_fine_scan_matching_match(const scan_t *scan,
           if (score > best_score) {
             best_score = score;
             current_best_pose = candidate;
+            best_error.x = search_window_x;
+            best_error.y = search_window_y;
+            best_error.r = search_window_r;
           }
         }
       }
@@ -61,8 +65,9 @@ bool course_to_fine_scan_matching_match(const scan_t *scan,
     best_pose = current_best_pose;
 
     DEBUG("Course-to-fine scan matching: Level %d: Best score %.2f at pose "
-          "(%d,%d, %.9f)",
-          level, best_score, best_pose.x, best_pose.y, RAD2DEG(best_pose.r));
+          "(%d,%d, %.9f), search window (%d, %d, %.9f)",
+          level, best_score, best_pose.x, best_pose.y, RAD2DEG(best_pose.r),
+          search_window_x, search_window_y, best_error.r);
 
     // Halve search window at each refinement level
     search_window_x >>= 1;
@@ -71,9 +76,7 @@ bool course_to_fine_scan_matching_match(const scan_t *scan,
   }
 
   pose_estimate->pose = best_pose;
-  pose_estimate->error.x = search_window_x;
-  pose_estimate->error.y = search_window_y;
-  pose_estimate->error.r = search_window_r;
+  pose_estimate->error = best_error;
 
   return true;
 }
